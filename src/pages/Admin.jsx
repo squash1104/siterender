@@ -53,6 +53,7 @@ export default function Admin() {
     loja: "Mercado Livre",
     destaque: false,
     disponivel: true,
+    clicks: 0,
   });
 
   useEffect(() => {
@@ -115,7 +116,7 @@ export default function Admin() {
     resetForm();
   };
 
-  const resetForm = () => {
+  const     resetForm = () => {
     setShowForm(false);
     setEditingId(null);
     setForm({
@@ -128,6 +129,7 @@ export default function Admin() {
       loja: "Mercado Livre",
       destaque: false,
       disponivel: true,
+      clicks: 0,
     });
   };
 
@@ -142,6 +144,7 @@ export default function Admin() {
       loja: product.loja || "Mercado Livre",
       destaque: product.destaque || false,
       disponivel: product.disponivel !== false,
+      clicks: product.clicks || 0,
     });
     setEditingId(product.id);
     setShowForm(true);
@@ -403,6 +406,7 @@ export default function Admin() {
                   <th className="text-left p-4 text-sm font-medium text-muted-foreground">Categoria</th>
                   <th className="text-left p-4 text-sm font-medium text-muted-foreground">Preço</th>
                   <th className="text-left p-4 text-sm font-medium text-muted-foreground">Loja</th>
+                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">Cliques</th>
                   <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
                   <th className="text-right p-4 text-sm font-medium text-muted-foreground">Ações</th>
                 </tr>
@@ -430,6 +434,7 @@ export default function Admin() {
                     <td className="p-4 text-sm">{product.categoria}</td>
                     <td className="p-4 font-bold">{formatPrice(product.preco)}</td>
                     <td className="p-4 text-sm">{product.loja}</td>
+                    <td className="p-4 text-sm">{product.clicks || 0}</td>
                     <td className="p-4">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${

@@ -45,6 +45,7 @@ export default function Pecas() {
             loja: "Mercado Livre",
             destaque: true,
             disponivel: true,
+            clicks: 0,
           },
           {
             id: 2,
@@ -57,6 +58,7 @@ export default function Pecas() {
             loja: "Kabum",
             destaque: false,
             disponivel: true,
+            clicks: 0,
           },
           {
             id: 3,
@@ -69,6 +71,7 @@ export default function Pecas() {
             loja: "Amazon",
             destaque: false,
             disponivel: true,
+            clicks: 0,
           },
         ];
         localStorage.setItem("pecas", JSON.stringify(loadedProducts));
@@ -86,6 +89,14 @@ export default function Pecas() {
     const matchesCategory = category === "Todos" || product.categoria === category;
     return matchesSearch && matchesCategory && product.disponivel;
   });
+
+  const handleProductClick = (productId) => {
+    const updatedProducts = products.map((p) =>
+      p.id === productId ? { ...p, clicks: (p.clicks || 0) + 1 } : p
+    );
+    localStorage.setItem("pecas", JSON.stringify(updatedProducts));
+    setProducts(updatedProducts);
+  };
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -189,6 +200,7 @@ export default function Pecas() {
                 href={product.link_compra}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => handleProductClick(product.id)}
                 className="group bg-card rounded-xl border border-border overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all"
               >
                 <div className="aspect-square overflow-hidden bg-muted">
