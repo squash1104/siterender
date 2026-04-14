@@ -9,6 +9,7 @@ const navLinks = [
   { label: "Serviços", href: "#servicos", internal: true },
   { label: "Sobre", href: "#sobre", internal: true },
   { label: "Peças", href: "/pecas", internal: false },
+  { label: "Acesso Restrito", href: "/admin", internal: false },
   { label: "Contato", href: "#contato", internal: true },
 ];
 

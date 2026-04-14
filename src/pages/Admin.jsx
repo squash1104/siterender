@@ -38,6 +38,7 @@ const navLinks = [
 
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -73,18 +74,19 @@ export default function Admin() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === "admin123") {
+    if (username === "lmstech" && password === "admin123") {
       localStorage.setItem("admin_auth", "true");
       setAuthenticated(true);
       loadProducts();
     } else {
-      alert("Senha incorreta");
+      alert("Usuário ou senha incorretos");
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("admin_auth");
     setAuthenticated(false);
+    setUsername("");
     setPassword("");
   };
 
@@ -173,9 +175,19 @@ export default function Admin() {
           <div className="text-center mb-6">
             <Monitor className="w-12 h-12 text-primary mx-auto mb-4" />
             <h1 className="text-2xl font-bold">Admin - Peças</h1>
-            <p className="text-muted-foreground">Digite a senha para acessar</p>
+            <p className="text-muted-foreground">Digite usuário e senha para acessar</p>
           </div>
           <form onSubmit={handleLogin}>
+            <div className="mb-4">
+              <Label htmlFor="username">Usuário</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                placeholder="Digite o usuário"
+              />
+            </div>
             <div className="mb-4">
               <Label htmlFor="password">Senha</Label>
               <Input
