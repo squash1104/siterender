@@ -174,7 +174,7 @@ export default function Admin() {
         <div className="bg-card rounded-xl border border-border p-8 w-full max-w-md">
           <div className="text-center mb-6">
             <Monitor className="w-12 h-12 text-primary mx-auto mb-4" />
-            <h1 className="text-2xl font-bold">Admin - Peças</h1>
+            <h1 className="text-2xl font-bold">Acesso Restrito</h1>
             <p className="text-muted-foreground">Digite usuário e senha para acessar</p>
           </div>
           <form onSubmit={handleLogin}>
@@ -199,10 +199,15 @@ export default function Admin() {
                 placeholder="Digite a senha"
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full mb-4">
               Entrar
             </Button>
           </form>
+          <div className="text-center">
+            <Link to="/" className="text-sm text-muted-foreground hover:text-primary">
+              ← Voltar ao Site Principal
+            </Link>
+          </div>
         </div>
       </div>
     );
