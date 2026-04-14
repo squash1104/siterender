@@ -13,7 +13,7 @@ const services = [
     icon: Monitor,
     title: "Manutenção de Computadores e Notebooks",
     description:
-      "Diagnóstico completo, reparo de hardware e software, limpeza interna, troca de componentes, formatação e recuperação de dados. Atendemos todas as marcas.",
+      "Diagnóstico completo, limpeza interna, troca de componentes, formatação, otimização do sistema e backup de dados.",
     features: ["Diagnóstico gratuito", "Peças com garantia", "Atendimento rápido"],
     image: manutencaoImg,
   },
@@ -29,15 +29,15 @@ const services = [
     icon: Wifi,
     title: "Instalação de Rede Cabeada e Wi-Fi",
     description:
-      "Projeto e instalação de infraestrutura de rede completa para empresas e residências. Cabeamento estruturado, configuração de roteadores e access points.",
-    features: ["Projeto personalizado", "Cabeamento Cat5e/Cat6", "Cobertura total Wi-Fi"],
+      "Projeto e instalação de infraestrutura de rede para empresas e residências. Configuração de roteadores e access points.",
+    features: ["Projeto personalizado", "Cobertura Wi-Fi"],
     image: redeImg,
   },
   {
     icon: Truck,
     title: "Busca e Entrega do Equipamento",
     description:
-      "Comodidade total para você! Buscamos o seu computador ou notebook no endereço desejado, realizamos o serviço e entregamos de volta. Sem você precisar sair de casa ou do trabalho.",
+      "Comodidade total para você! Buscamos o seu computador ou notebook no endereço desejado, realizamos o diagnóstico e o serviço e entregamos de volta. Sem você precisar sair de casa ou do trabalho.",
     features: ["Coleta no seu endereço", "Entrega após o conserto", "Agendamento pelo WhatsApp"],
     image: buscarImg,
   },

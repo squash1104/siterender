@@ -10,10 +10,9 @@ const stats = [
 
 const values = [
   "Atendimento rápido e eficiente",
-  "Profissionais certificados",
+  "Profissionais com experiência",
   "Transparência nos orçamentos",
-  "Garantia em todos os serviços",
-  "Peças originais e de qualidade",
+  "Peças para reposição/upgrade de qualidade",
   "Suporte pós-atendimento",
 ];
 
@@ -36,12 +35,10 @@ export default function AboutSection() {
               LMS Technologies
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              Somos uma empresa especializada em soluções de tecnologia, com foco em
-              manutenção de equipamentos, infraestrutura de rede, montagem de computadores,
-              suporte remoto e instalação de softwares. Atuamos em Cuiabá há mais
-              de 10 anos, oferecendo assessoria técnica de excelência. Nosso
-              compromisso é prestar um serviço de qualidade, com agilidade e
-              confiança.
+              Somos uma empresa especializada em soluções de tecnologia, com foco em formatação,
+              manutenção, reparo de equipamentos, instalação de rede cabeada e wiireless, montagem de computadores,
+              instalação de software e atendimento remoto. Atuamos em Cuiabá há mais
+              de 10 anos, oferecendo assessoria técnica de qualidade.
             </p>
 
             <div className="grid grid-cols-3 gap-6 mb-8">
