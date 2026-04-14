@@ -30,7 +30,50 @@ export default function Pecas() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem("pecas");
-      setProducts(stored ? JSON.parse(stored) : []);
+      let loadedProducts = stored ? JSON.parse(stored) : [];
+      if (loadedProducts.length === 0) {
+        // Adicionar produtos de exemplo se nenhum existir
+        loadedProducts = [
+          {
+            id: 1,
+            nome: "Placa de Vídeo RTX 4060",
+            descricao: "Placa de vídeo NVIDIA GeForce RTX 4060, 8GB GDDR6",
+            categoria: "Placa de Vídeo",
+            preco: 2499.99,
+            imagem_url: "/pc gamer.avif",
+            link_compra: "https://www.mercadolivre.com.br/",
+            loja: "Mercado Livre",
+            destaque: true,
+            disponivel: true,
+          },
+          {
+            id: 2,
+            nome: "Memória RAM DDR4 16GB",
+            descricao: "Kit 2x8GB DDR4 3200MHz Kingston",
+            categoria: "Memória RAM",
+            preco: 299.99,
+            imagem_url: "/Manutenção.jpg",
+            link_compra: "https://www.kabum.com.br/",
+            loja: "Kabum",
+            destaque: false,
+            disponivel: true,
+          },
+          {
+            id: 3,
+            nome: "SSD NVMe 1TB",
+            descricao: "SSD NVMe M.2 1TB Samsung 980",
+            categoria: "HD / SSD",
+            preco: 449.99,
+            imagem_url: "/rede.webp",
+            link_compra: "https://www.amazon.com.br/",
+            loja: "Amazon",
+            destaque: false,
+            disponivel: true,
+          },
+        ];
+        localStorage.setItem("pecas", JSON.stringify(loadedProducts));
+      }
+      setProducts(loadedProducts);
     } catch {
       setProducts([]);
     }
