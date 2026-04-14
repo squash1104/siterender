@@ -21,7 +21,8 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAwTDM2IDYwTDAgNjBMMCAwWiIgZmlsbD0iIzFkM2IzZiIgZmlsbC1vcGFjaXR5PSIwLjEiLz48L2c+PC9zdmc+')] opacity-20"></div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-0">
-        <div className="max-w-2xl">
+        <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+          <div className="flex-1 max-w-2xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -89,6 +90,20 @@ export default function HeroSection() {
                 <span className="text-sm font-medium">{label}</span>
               </div>
             ))}
+          </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="flex-1"
+          >
+            <img
+              src="/solução.jpg"
+              alt="Soluções em Tecnologia"
+              className="w-full max-w-md lg:max-w-lg h-auto rounded-lg shadow-2xl"
+            />
           </motion.div>
         </div>
       </div>
