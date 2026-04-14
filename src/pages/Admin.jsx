@@ -37,6 +37,8 @@ const navLinks = [
 ];
 
 export default function Admin() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -53,7 +55,11 @@ export default function Admin() {
   });
 
   useEffect(() => {
-    loadProducts();
+    const auth = localStorage.getItem("admin_auth");
+    if (auth === "true") {
+      setAuthenticated(true);
+      loadProducts();
+    }
   }, []);
 
   const loadProducts = () => {
@@ -63,6 +69,23 @@ export default function Admin() {
     } catch {
       setProducts([]);
     }
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === "admin123") {
+      localStorage.setItem("admin_auth", "true");
+      setAuthenticated(true);
+      loadProducts();
+    } else {
+      alert("Senha incorreta");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin_auth");
+    setAuthenticated(false);
+    setPassword("");
   };
 
   const saveProducts = (newProducts) => {
@@ -143,6 +166,36 @@ export default function Admin() {
     }).format(price || 0);
   };
 
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="bg-card rounded-xl border border-border p-8 w-full max-w-md">
+          <div className="text-center mb-6">
+            <Monitor className="w-12 h-12 text-primary mx-auto mb-4" />
+            <h1 className="text-2xl font-bold">Admin - Peças</h1>
+            <p className="text-muted-foreground">Digite a senha para acessar</p>
+          </div>
+          <form onSubmit={handleLogin}>
+            <div className="mb-4">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="Digite a senha"
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Entrar
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -153,6 +206,9 @@ export default function Admin() {
             <span className="font-bold text-lg">Admin - Peças</span>
           </div>
           <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={handleLogout}>
+              Sair
+            </Button>
             {navLinks.map((link) => (
               <Link
                 key={link.href}
