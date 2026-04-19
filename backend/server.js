@@ -49,11 +49,12 @@ const upload = multer({
 // Inicializar banco de dados PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : false
 });
 
-pool.on('connect', () => {
-  console.log('Conectado ao banco de dados PostgreSQL.');
-  initializeDatabase();
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+  await initializeDatabase(); // Garante que as tabelas existem ao subir o app
 });
 
 pool.on('error', (err) => {
@@ -222,14 +223,17 @@ app.get('/api/reviews/:portfolioId', async (req, res) => {
 });
 
 app.post('/api/reviews', async (req, res) => {
+  console.log('>>> POST review body:', req.body);
   const { portfolio_id, username, rating, comment } = req.body;
   try {
     const result = await pool.query(
       'INSERT INTO reviews (portfolio_id, username, rating, comment) VALUES ($1, $2, $3, $4) RETURNING id',
       [portfolio_id, username, rating, comment]
     );
+    console.log('>>> Review criado:', result.rows[0]);
     res.json({ id: result.rows[0].id });
   } catch (err) {
+    console.error('>>> ERRO ao criar review:', err.stack || err.message);
     res.status(500).json({ error: err.message });
   }
 });
