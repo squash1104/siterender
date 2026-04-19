@@ -56,7 +56,7 @@ const services = [
     icon: Code,
     title: "Desenvolvimento de Sites e Apps",
     description:
-      "Desenvolvemos websites responsivos, sistemas web personalizados e aplicativos móveis sob medida. Cada projeto é analisado individualmente para oferecer soluções ideais em divulgação, atendimento ao cliente, vendas online, gestão empresarial e presença digital, garantindo usabilidade, performance e resultados excepcionais.",
+      "Desenvolvemos websites responsivos, sistemas web e aplicativos móveis. Cada projeto é analisado individualmente para oferecer a melhor solução de acordo com a necessidade de cada cliente. Vendas online, gestão empresarial e presença digital, garantindo usabilidade, performance e resultados excepcionais.",
     features: ["Websites responsivos", "Apps móveis", "Sistemas web", "Análise personalizada"],
     image: desenvolvimentoImg,
   },
