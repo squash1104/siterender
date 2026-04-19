@@ -5,6 +5,7 @@ import { queryClient } from '@/lib/query-client'
 import Home from './pages/Home';
 import Pecas from './pages/Pecas';
 import Admin from './pages/Admin';
+import DriverControl from './pages/DriverControl';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/pecas" element={<Pecas />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/drivercontrol" element={<DriverControl />} />
         </Routes>
       </Router>
       <Toaster />

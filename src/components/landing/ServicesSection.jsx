@@ -64,32 +64,11 @@ const services = [
 
 const portfolioProjects = [
   {
-    title: "E-commerce para Loja de Roupas",
-    description: "Website responsivo com catálogo de produtos, carrinho de compras e integração com pagamentos online.",
-    technologies: ["React", "Node.js", "MongoDB", "Stripe"],
-    image: "/solução.jpg", // placeholder
-    link: "#",
-  },
-  {
-    title: "App de Delivery para Restaurante",
-    description: "Aplicativo móvel para pedidos online, rastreamento em tempo real e sistema de fidelidade.",
-    technologies: ["React Native", "Firebase", "Google Maps"],
-    image: "/pc gamer.avif", // placeholder
-    link: "#",
-  },
-  {
-    title: "Sistema de Gestão Empresarial",
-    description: "Plataforma web para controle financeiro, estoque e relatórios personalizados para PME.",
-    technologies: ["Vue.js", "Laravel", "MySQL"],
-    image: "/Manutenção.jpg", // placeholder
-    link: "#",
-  },
-  {
-    title: "UberControl - Controle de Corridas",
+    title: "DriverControl - Controle de Corridas",
     description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
     technologies: ["Django", "Python", "Bootstrap", "SQLite"],
-    image: "/rede.webp", // placeholder
-    link: "#",
+    image: "/DriverControl.png",
+    link: "/drivercontrol",
   },
 ];
 
