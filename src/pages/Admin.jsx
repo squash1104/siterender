@@ -537,6 +537,21 @@ export default function Admin() {
                           onChange={(e) => setForm({ ...form, image: e.target.value })}
                           placeholder="/banerDC.png"
                         />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                setForm({ ...form, image: event.target.result });
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div>
@@ -546,6 +561,25 @@ export default function Admin() {
                           value={form.images}
                           onChange={(e) => setForm({ ...form, images: e.target.value })}
                           placeholder="/screenshot1.png, /screenshot2.png"
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files);
+                            const readers = files.map(file => {
+                              return new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onload = (event) => resolve(event.target.result);
+                                reader.readAsDataURL(file);
+                              });
+                            });
+                            Promise.all(readers).then((urls) => {
+                              setForm({ ...form, images: urls.join(', ') });
+                            });
+                          }}
+                          className="mt-2"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           Imagens para a página de detalhes do projeto
