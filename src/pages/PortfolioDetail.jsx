@@ -44,12 +44,17 @@ export default function PortfolioDetail() {
         </div>
       </nav>
 
+          <div className="max-w-4xl mx-auto my-4"> 
+            <Button variant="link" className="p-0 h-auto" asChild>
+              <Link to="/portfolio">← Voltar para Portfólios</Link>
+            </Button>
+            </div>
+          
+
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="flex items-start gap-8 mb-8">
-          <Button variant="link" className="p-0 h-auto" asChild>
-            <Link to="/portfolio">← Voltar para Portfólios</Link>
-          </Button>
+          
           <img
             src={project.image || '/banerDC.png'}
             alt={project.title}
@@ -92,23 +97,20 @@ export default function PortfolioDetail() {
 
         {/* Screenshots */}
             {project.images && project.images.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Capturas de Tela</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {project.images.map((img, index) => {
-                const urls = img.trim().split(/\r?\n/).filter(Boolean).map(u => u.trim()).filter(Boolean);
-                return urls.map((url, i) => (
-                  <img
-                    key={index + '-' + i}
-                    src={url.startsWith('http') ? url : url}
-                    alt={`Screenshot ${index + 1} - ${i + 1}`}
-                    className="w-full rounded-lg shadow-md"
-                    onError={(e) => e.target.style.display = 'none'}
-                  />
-                ));
-              })}
-            </div>
-          </div>
+           <div>
+             <h2 className="text-2xl font-bold mb-4">Capturas de Tela</h2>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {project.images.map((url, index) => (
+                 <img
+                   key={index}
+                   src={url.startsWith('http') ? url : url}
+                   alt={`Screenshot ${index + 1}`}
+                   className="w-full rounded-lg shadow-md"
+                   onError={(e) => e.target.style.display = 'none'}
+                 />
+               ))}
+             </div>
+           </div>
         )}
       </div>
     </div>

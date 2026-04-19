@@ -62,6 +62,8 @@ export default function Admin() {
     technologies: "",
     image: "",
     images: "",
+    imageFile: null,
+    imagesFiles: [],
     link: "",
     createdAt: "",
     version: "",
@@ -134,6 +136,42 @@ export default function Admin() {
     setProducts(newProducts);
   };
 
+  const compressImage = (file, maxWidth = 150, quality = 0.3) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = (maxWidth / width) * height;
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          
+          if (compressed.length > 15000) {
+            console.warn('Imagem ainda grande:', compressed.length, 'bytes');
+          }
+
+          resolve(compressed);
+        };
+        img.onerror = () => reject(new Error('Erro ao processar imagem'));
+        img.src = event.target.result;
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -153,27 +191,39 @@ export default function Admin() {
 
       saveProducts(newProducts);
     } else {
+      // Processar imagens: se há uploads, usar base64 comprimidos; se não, usar URLs do input de texto
+      let processedImages = [];
+      if (form.imagesFiles && form.imagesFiles.length > 0) {
+        // Upload via file: já comprimido e separado por '|'
+        processedImages = form.images.split('|').filter(Boolean);
+      } else if (form.images) {
+        // URLs manuais (digitadas)
+        processedImages = form.images.split(',').map(i => i.trim()).filter(Boolean);
+      }
+
       const projectData = {
         id: editingId || Date.now(),
         title: form.title,
         description: form.description,
         technologies: form.technologies.split(",").map(t => t.trim()).filter(t => t),
-        image: form.image,
-        images: form.images.split(",").map(i => i.trim()).filter(i => i),
+        image: form.image || "/banerDC.png",
+        images: processedImages,
         link: form.link,
         createdAt: form.createdAt || new Date().toISOString().split('T')[0],
         version: form.version || "1.0.0",
       };
 
-      let newPortfolio;
-      if (editingId) {
-        newPortfolio = portfolio.map((p) => (p.id === editingId ? { ...projectData, id: editingId } : p));
-      } else {
-        newPortfolio = [...portfolio, projectData];
-      }
+      const newPortfolio = editingId 
+        ? portfolio.map((p) => (p.id === editingId ? { ...projectData, id: editingId } : p))
+        : [...portfolio, projectData];
 
       localStorage.setItem("portfolio", JSON.stringify(newPortfolio));
       setPortfolio(newPortfolio);
+
+      // Forçar reload para limpar cache das imagens antigas (base64 grandes)
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     }
     resetForm();
   };
@@ -181,6 +231,11 @@ export default function Admin() {
   const     resetForm = () => {
     setShowForm(false);
     setEditingId(null);
+    // Revogar URLs temporárias para evitar vazamento de memória
+    if (form.imagePreview) URL.revokeObjectURL(form.imagePreview);
+    if (form.imagesPreviews) {
+      form.imagesPreviews.forEach(url => URL.revokeObjectURL(url));
+    }
     setForm({
       nome: "",
       descricao: "",
@@ -197,6 +252,10 @@ export default function Admin() {
       technologies: "",
       image: "",
       images: "",
+      imageFile: null,
+      imagesFiles: [],
+      imagePreview: null,
+      imagesPreviews: [],
       link: "",
       createdAt: "",
       version: "",
@@ -239,7 +298,11 @@ export default function Admin() {
         description: item.description || "",
         technologies: item.technologies?.join(", ") || "",
         image: item.image || "",
-        images: item.images?.join(", ") || "",
+        images: "", // campo de texto limpo na edição (usa preview dos arquivos)
+        imageFile: null,
+        imagesFiles: [],
+        imagePreview: item.image || null,
+        imagesPreviews: item.images || [],
         link: item.link || "",
         createdAt: item.createdAt || "",
         version: item.version || "",
@@ -539,60 +602,115 @@ export default function Admin() {
                         />
                       </div>
 
-                      <div>
+                       <div>
                         <Label htmlFor="image">Imagem Principal</Label>
                         <Input
                           id="image"
                           value={form.image}
                           onChange={(e) => setForm({ ...form, image: e.target.value })}
-                          placeholder="/banerDC.png"
+                          placeholder="/banerDC.png ou cole uma URL"
                         />
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                setForm({ ...form, image: event.target.result });
-                              };
-                              reader.readAsDataURL(file);
+                              try {
+                                // Preview instantâneo (não vai pro localStorage)
+                                const previewUrl = URL.createObjectURL(file);
+                                // Comprime MUITO para thumbnail (max 150px, qualidade 0.3)
+                                const compressed = await compressImage(file);
+                                
+                                setForm({ 
+                                  ...form, 
+                                  imageFile: file,
+                                  imagePreview: previewUrl,
+                                  image: compressed // thumbnail tiny (~5-10KB)
+                                });
+                              } catch (err) {
+                                alert(err.message || 'Erro ao processar imagem');
+                              }
                             }
                           }}
                           className="mt-2"
                         />
-                      </div>
+                        {form.imagePreview && (
+                          <div className="mt-2">
+                            <img 
+                              src={form.imagePreview} 
+                              alt="Preview" 
+                              className="w-24 h-24 object-cover rounded border"
+                            />
+                              <p className="text-xs text-muted-foreground mt-1">
+                              Thumbnail: {(form.image?.length * 0.75 / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Imagem compactada automática (~10KB). Para qualidade total, use URL externa.
+                        </p>
+                      </div>>>
 
                       <div>
-                        <Label htmlFor="images">Imagens Adicionais (separadas por vírgula)</Label>
+                        <Label htmlFor="images">Imagens Adicionais (máx. 3)</Label>
                         <Input
                           id="images"
                           value={form.images}
                           onChange={(e) => setForm({ ...form, images: e.target.value })}
-                          placeholder="/screenshot1.png, /screenshot2.png"
+                          placeholder="Cole URLs separadas por vírgula"
                         />
                         <input
                           type="file"
                           accept="image/*"
                           multiple
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files);
-                            const readers = files.map(file => {
-                              return new Promise((resolve) => {
-                                const reader = new FileReader();
-                                reader.onload = (event) => resolve(event.target.result);
-                                reader.readAsDataURL(file);
+                          onChange={async (e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length === 0) return;
+                            
+                            if (files.length > 3) {
+                              alert('Máximo 3 imagens adicionais');
+                              return;
+                            }
+
+                            try {
+                              // Previews (não salvos)
+                              const previewUrls = files.map(f => URL.createObjectURL(f));
+                              // Comprime para thumbnails tiny
+                              const compressed = await Promise.all(
+                                files.map(file => compressImage(file))
+                              );
+                              
+                              setForm({ 
+                                ...form, 
+                                imagesFiles: files,
+                                images: compressed.join('|'),
+                                imagesPreviews: previewUrls
                               });
-                            });
-                            Promise.all(readers).then((urls) => {
-                              setForm({ ...form, images: urls.join(', ') });
-                            });
+                            } catch (err) {
+                              alert(err.message || 'Erro ao processar imagens');
+                            }
                           }}
                           className="mt-2"
                         />
+                        {form.imagesPreviews && form.imagesPreviews.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {form.imagesPreviews.map((url, idx) => (
+                              <div key={idx} className="relative">
+                                <img 
+                                  src={url} 
+                                  alt={`Preview ${idx + 1}`} 
+                                  className="w-20 h-20 object-cover rounded border"
+                                />
+                                <span className="text-[10px] text-muted-foreground">
+                                  ~10KB
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">
-                          Imagens para a página de detalhes do projeto
+                          Thumbnails compactadas (~10KB cada). Para imagens grandes, use URL externa.
                         </p>
                       </div>
 
