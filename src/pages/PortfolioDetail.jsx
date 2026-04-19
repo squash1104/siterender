@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Download, Calendar, Tag } from "lucide-react";
+import { Download, Calendar, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function PortfolioDetail() {
@@ -28,7 +28,6 @@ export default function PortfolioDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
       <nav className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
@@ -47,12 +46,9 @@ export default function PortfolioDetail() {
 
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
-        <Button variant="outline" className="mb-4" asChild>
-          <Link to="/portfolio">← Voltar aos Portfólios</Link>
-        </Button>
         <div className="flex items-start gap-8 mb-8">
-          <Button variant="outline" className="mb-4" asChild>
-            <Link to="/portfolio">← Voltar</Link>
+          <Button variant="link" className="p-0 h-auto" asChild>
+            <Link to="/portfolio">← Voltar para Portfólios</Link>
           </Button>
           <img
             src={project.image || '/banerDC.png'}
@@ -73,7 +69,7 @@ export default function PortfolioDetail() {
                 <span>Versão {project.version || '1.0.0'}</span>
               </div>
             </div>
-            <Button className="gap-2" asChild>
+            <Button asChild>
               <a href={project.link} target="_blank" rel="noopener noreferrer">
                 <Download className="w-4 h-4" />
                 Acessar Sistema
@@ -102,10 +98,10 @@ export default function PortfolioDetail() {
               {project.images.map((img, index) => (
                 <img
                   key={index}
-                  src={img.startsWith('http') ? img : img} // handle URLs
+                  src={img.startsWith('http') ? img : img}
                   alt={`Screenshot ${index + 1}`}
                   className="w-full rounded-lg shadow-md"
-                  onError={(e) => e.target.style.display = 'none'} // hide broken images
+                  onError={(e) => e.target.style.display = 'none'}
                 />
               ))}
             </div>
