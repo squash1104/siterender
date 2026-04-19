@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Monitor, Wifi, Users, Truck, ArrowRight, Cpu, Code, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
