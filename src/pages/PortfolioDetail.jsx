@@ -15,7 +15,7 @@ export default function PortfolioDetail() {
   const [reviews, setReviews] = useState([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [newReview, setNewReview] = useState({
-    user: "",
+    username: "",
     rating: 5,
     comment: ""
   });
@@ -73,7 +73,7 @@ export default function PortfolioDetail() {
   const handleAddReview = async (e) => {
     e.preventDefault();
 
-    if (!newReview.user.trim() || !newReview.comment.trim()) {
+    if (!newReview.username.trim() || !newReview.comment.trim()) {
       alert("Por favor, preencha todos os campos.");
       return;
     }
@@ -81,7 +81,7 @@ export default function PortfolioDetail() {
     try {
       const review = {
         portfolio_id: parseInt(id),
-        user: newReview.user.trim(),
+        username: newReview.username.trim(),
         rating: newReview.rating,
         comment: newReview.comment.trim()
       };
@@ -92,7 +92,7 @@ export default function PortfolioDetail() {
       const reviewsData = await api.getReviews(id);
       setReviews(reviewsData);
 
-      setNewReview({ user: "", rating: 5, comment: "" });
+      setNewReview({ username: "", rating: 5, comment: "" });
       setShowReviewForm(false);
     } catch (error) {
       console.error('Erro ao adicionar avaliação:', error);
@@ -327,9 +327,9 @@ export default function PortfolioDetail() {
                 <div>
                   <Label htmlFor="review-user">Nome *</Label>
                   <Input
-                    id="review-user"
-                    value={newReview.user}
-                    onChange={(e) => setNewReview({ ...newReview, user: e.target.value })}
+                    id="review-username"
+                    value={newReview.username}
+                    onChange={(e) => setNewReview({ ...newReview, username: e.target.value })}
                     placeholder="Seu nome"
                     required
                   />
@@ -412,7 +412,7 @@ export default function PortfolioDetail() {
                   {/* Review Content */}
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="font-medium">{review.user}</span>
+                      <span className="font-medium">{review.username}</span>
                       <span className="text-sm text-muted-foreground">
                         {new Date(review.date).toLocaleDateString('pt-BR')}
                       </span>
