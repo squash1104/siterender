@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Monitor, Wifi, Users, Truck, ArrowRight, Cpu, Code } from "lucide-react";
+import { Monitor, Wifi, Users, Truck, ArrowRight, Cpu, Code, X, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import manutencaoImg from "/Manutenção.jpg";
 import pcGamerImg from "/pc gamer.avif";
@@ -60,7 +62,33 @@ const services = [
   },
 ];
 
+const portfolioProjects = [
+  {
+    title: "E-commerce para Loja de Roupas",
+    description: "Website responsivo com catálogo de produtos, carrinho de compras e integração com pagamentos online.",
+    technologies: ["React", "Node.js", "MongoDB", "Stripe"],
+    image: "/solução.jpg", // placeholder
+    link: "#",
+  },
+  {
+    title: "App de Delivery para Restaurante",
+    description: "Aplicativo móvel para pedidos online, rastreamento em tempo real e sistema de fidelidade.",
+    technologies: ["React Native", "Firebase", "Google Maps"],
+    image: "/pc gamer.avif", // placeholder
+    link: "#",
+  },
+  {
+    title: "Sistema de Gestão Empresarial",
+    description: "Plataforma web para controle financeiro, estoque e relatórios personalizados para PME.",
+    technologies: ["Vue.js", "Laravel", "MySQL"],
+    image: "/Manutenção.jpg", // placeholder
+    link: "#",
+  },
+];
+
 export default function ServicesSection() {
+  const [portfolioOpen, setPortfolioOpen] = useState(false);
+
   return (
     <section id="servicos" className="py-24 md:py-32 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -113,7 +141,7 @@ export default function ServicesSection() {
                   <p className="text-muted-foreground text-sm leading-relaxed mb-3">
                     {service.description}
                   </p>
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-1.5 mb-4">
                     {service.features.map((feature) => (
                       <li key={feature} className="flex items-center gap-2 text-xs text-foreground">
                         <span className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -123,11 +151,64 @@ export default function ServicesSection() {
                       </li>
                     ))}
                   </ul>
+                  {service.title === "Desenvolvimento de Sites e Apps" && (
+                    <Button
+                      size="sm"
+                      onClick={() => setPortfolioOpen(true)}
+                      className="w-full"
+                    >
+                      Ver Portfólio
+                    </Button>
+                  )}
                 </div>
               </motion.div>
             );
           })}
         </div>
+
+        {/* Portfolio Modal */}
+        <Dialog open={portfolioOpen} onOpenChange={setPortfolioOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Code className="w-5 h-5" />
+                Nosso Portfólio de Desenvolvimento
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {portfolioProjects.map((project, index) => (
+                <motion.div
+                  key={project.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-card rounded-lg border border-border overflow-hidden"
+                >
+                  <img
+                    src={project.image}
+                    alt={project.title}
+                    className="w-full h-32 object-cover"
+                  />
+                  <div className="p-4">
+                    <h3 className="font-semibold text-sm mb-2">{project.title}</h3>
+                    <p className="text-xs text-muted-foreground mb-3">{project.description}</p>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {project.technologies.map((tech) => (
+                        <span key={tech} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                    <Button size="sm" variant="outline" className="w-full gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Ver Projeto
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </section>
   );
