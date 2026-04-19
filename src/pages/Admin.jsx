@@ -77,17 +77,21 @@ export default function Admin() {
   const loadPortfolio = () => {
     try {
       const stored = localStorage.getItem("portfolio");
-      const projects = stored ? JSON.parse(stored) : [
-        {
-          id: 1,
-          title: "DriverControl - Controle de Corridas",
-          description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
-          technologies: ["Django", "Python", "Bootstrap", "SQLite"],
-          image: "/banerDC.png",
-          images: ["/DriverControl.png"],
-          link: "/drivercontrol",
-        },
-      ];
+      let projects = stored ? JSON.parse(stored) : [];
+      const defaultProject = {
+        id: 1,
+        title: "DriverControl - Controle de Corridas",
+        description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
+        technologies: ["Django", "Python", "Bootstrap", "SQLite"],
+        image: "/banerDC.png",
+        images: ["/DriverControl.png"],
+        link: "/drivercontrol",
+      };
+      const hasDefault = projects.some(p => p.id === 1);
+      if (!hasDefault) {
+        projects.unshift(defaultProject);
+        localStorage.setItem("portfolio", JSON.stringify(projects));
+      }
       setPortfolio(projects);
     } catch {
       setPortfolio([]);
