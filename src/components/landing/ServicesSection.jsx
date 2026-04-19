@@ -84,6 +84,13 @@ const portfolioProjects = [
     image: "/Manutenção.jpg", // placeholder
     link: "#",
   },
+  {
+    title: "UberControl - Controle de Corridas",
+    description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
+    technologies: ["Django", "Python", "Bootstrap", "SQLite"],
+    image: "/rede.webp", // placeholder
+    link: "#",
+  },
 ];
 
 export default function ServicesSection() {
