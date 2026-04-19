@@ -91,19 +91,22 @@ export default function PortfolioDetail() {
         </div>
 
         {/* Screenshots */}
-        {project.images && project.images.length > 0 && (
+            {project.images && project.images.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold mb-4">Capturas de Tela</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {project.images.map((img, index) => (
-                <img
-                  key={index}
-                  src={img.startsWith('http') ? img : img}
-                  alt={`Screenshot ${index + 1}`}
-                  className="w-full rounded-lg shadow-md"
-                  onError={(e) => e.target.style.display = 'none'}
-                />
-              ))}
+              {project.images.map((img, index) => {
+                const urls = img.trim().split(/\r?\n/).filter(Boolean).map(u => u.trim()).filter(Boolean);
+                return urls.map((url, i) => (
+                  <img
+                    key={index + '-' + i}
+                    src={url.startsWith('http') ? url : url}
+                    alt={`Screenshot ${index + 1} - ${i + 1}`}
+                    className="w-full rounded-lg shadow-md"
+                    onError={(e) => e.target.style.display = 'none'}
+                  />
+                ));
+              })}
             </div>
           </div>
         )}
