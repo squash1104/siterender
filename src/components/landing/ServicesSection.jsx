@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Monitor, Wifi, Users, Truck, ArrowRight, Cpu, Code, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,15 +62,27 @@ const services = [
   },
 ];
 
-const portfolioProjects = [
-  {
-    title: "DriverControl - Controle de Corridas",
-    description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
-    technologies: ["Django", "Python", "Bootstrap", "SQLite"],
-    image: "/banerDC.png",
-    link: "/drivercontrol",
-  },
-];
+const [portfolioProjects, setPortfolioProjects] = useState([]);
+
+useEffect(() => {
+  try {
+    const stored = localStorage.getItem("portfolio");
+    const projects = stored ? JSON.parse(stored) : [
+      {
+        id: 1,
+        title: "DriverControl - Controle de Corridas",
+        description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
+        technologies: ["Django", "Python", "Bootstrap", "SQLite"],
+        image: "/banerDC.png",
+        images: ["/DriverControl.png"],
+        link: "/drivercontrol",
+      },
+    ];
+    setPortfolioProjects(projects);
+  } catch {
+    setPortfolioProjects([]);
+  }
+}, []);
 
 export default function ServicesSection() {
   const [portfolioOpen, setPortfolioOpen] = useState(false);
