@@ -173,7 +173,7 @@ export default function ServicesSection() {
                   <img
                     src={project.image}
                     alt={project.title}
-                    className="w-full h-32 object-cover"
+                    className="w-full h-32 object-contain bg-muted"
                   />
                   <div className="p-4">
                     <h3 className="font-semibold text-sm mb-2">{project.title}</h3>
