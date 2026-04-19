@@ -136,7 +136,7 @@ export default function Admin() {
     setProducts(newProducts);
   };
 
-  const compressImage = (file, maxWidth = 150, quality = 0.3) => {
+  const compressImage = (file, maxWidth = 800, quality = 0.8) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -146,6 +146,7 @@ export default function Admin() {
           let width = img.width;
           let height = img.height;
 
+          // Para capturas de tela, manter resolução maior
           if (width > maxWidth) {
             height = (maxWidth / width) * height;
             width = maxWidth;
@@ -157,11 +158,6 @@ export default function Admin() {
           ctx.drawImage(img, 0, 0, width, height);
 
           const compressed = canvas.toDataURL('image/jpeg', quality);
-          
-          if (compressed.length > 15000) {
-            console.warn('Imagem ainda grande:', compressed.length, 'bytes');
-          }
-
           resolve(compressed);
         };
         img.onerror = () => reject(new Error('Erro ao processar imagem'));
@@ -648,71 +644,73 @@ export default function Admin() {
                           </div>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
-                          Imagem compactada automática (~10KB). Para qualidade total, use URL externa.
-                        </p>
-                      </div>>>
-
-                      <div>
-                        <Label htmlFor="images">Imagens Adicionais (máx. 3)</Label>
-                        <Input
-                          id="images"
-                          value={form.images}
-                          onChange={(e) => setForm({ ...form, images: e.target.value })}
-                          placeholder="Cole URLs separadas por vírgula"
-                        />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={async (e) => {
-                            const files = Array.from(e.target.files || []);
-                            if (files.length === 0) return;
-                            
-                            if (files.length > 3) {
-                              alert('Máximo 3 imagens adicionais');
-                              return;
-                            }
-
-                            try {
-                              // Previews (não salvos)
-                              const previewUrls = files.map(f => URL.createObjectURL(f));
-                              // Comprime para thumbnails tiny
-                              const compressed = await Promise.all(
-                                files.map(file => compressImage(file))
-                              );
-                              
-                              setForm({ 
-                                ...form, 
-                                imagesFiles: files,
-                                images: compressed.join('|'),
-                                imagesPreviews: previewUrls
-                              });
-                            } catch (err) {
-                              alert(err.message || 'Erro ao processar imagens');
-                            }
-                          }}
-                          className="mt-2"
-                        />
-                        {form.imagesPreviews && form.imagesPreviews.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {form.imagesPreviews.map((url, idx) => (
-                              <div key={idx} className="relative">
-                                <img 
-                                  src={url} 
-                                  alt={`Preview ${idx + 1}`} 
-                                  className="w-20 h-20 object-cover rounded border"
-                                />
-                                <span className="text-[10px] text-muted-foreground">
-                                  ~10KB
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Thumbnails compactadas (~10KB cada). Para imagens grandes, use URL externa.
+                          Qualidade otimizada (80%). Para máxima qualidade, use URL externa.
                         </p>
                       </div>
+
+                       <div>
+                         <Label htmlFor="images">Capturas de Tela (máx. 15)</Label>
+                         <Input
+                           id="images"
+                           value={form.images}
+                           onChange={(e) => setForm({ ...form, images: e.target.value })}
+                           placeholder="Cole URLs separadas por vírgula"
+                         />
+                         <input
+                           type="file"
+                           accept="image/*"
+                           multiple
+                           onChange={async (e) => {
+                             const files = Array.from(e.target.files || []);
+                             if (files.length === 0) return;
+
+                             if (files.length > 15) {
+                               alert('Máximo 15 imagens adicionais');
+                               return;
+                             }
+
+                             try {
+                               // Previews (não salvos)
+                               const previewUrls = files.map(f => URL.createObjectURL(f));
+                               // Comprime para thumbnails tiny
+                               const compressed = await Promise.all(
+                                 files.map(file => compressImage(file))
+                               );
+
+                               setForm({
+                                 ...form,
+                                 imagesFiles: files,
+                                 images: compressed.join('|'),
+                                 imagesPreviews: previewUrls
+                               });
+                             } catch (err) {
+                               alert(err.message || 'Erro ao processar imagens');
+                             }
+                           }}
+                           className="mt-2"
+                         />
+                         {form.imagesPreviews && form.imagesPreviews.length > 0 && (
+                           <div className="mt-2 flex flex-wrap gap-2">
+                             {form.imagesPreviews.slice(0, 10).map((url, idx) => (
+                               <div key={idx} className="relative">
+                                 <img
+                                   src={url}
+                                   alt={`Preview ${idx + 1}`}
+                                   className="w-16 h-16 object-cover rounded border"
+                                 />
+                                 {form.imagesPreviews.length > 10 && idx === 9 && (
+                                   <div className="absolute inset-0 bg-black/50 rounded flex items-center justify-center">
+                                     <span className="text-white text-xs">+{form.imagesPreviews.length - 10}</span>
+                                   </div>
+                                 )}
+                               </div>
+                             ))}
+                           </div>
+                         )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Qualidade otimizada (~50-100KB cada). Máximo 15 imagens. Para máxima qualidade, use URL externa.
+                          </p>
+                       </div>
 
                       <div>
                         <Label htmlFor="link">Link do Projeto</Label>
