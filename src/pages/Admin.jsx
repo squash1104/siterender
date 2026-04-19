@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/lib/api";
 
 const categories = [
   "Memória RAM",
@@ -78,37 +79,40 @@ export default function Admin() {
     }
   }, []);
 
-  const loadPortfolio = () => {
+  const loadPortfolio = async () => {
     try {
-      const stored = localStorage.getItem("portfolio");
-      let projects = stored ? JSON.parse(stored) : [];
+      const data = await api.getPortfolio();
+      // Adicionar projeto padrão se não existir
       const defaultProject = {
-          id: 1,
-          title: "DriverControl - Controle de Corridas",
-          description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
-          technologies: ["Django", "Python", "Bootstrap", "SQLite"],
-          image: "/banerDC.png",
-          images: ["/DriverControl.png"],
-          link: "/portfolio/1",
-          createdAt: "2024-01-15",
-          version: "1.0.0",
+        id: 1,
+        title: "DriverControl - Controle de Corridas",
+        description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
+        technologies: "Django, Python, Bootstrap, SQLite",
+        image: "/banerDC.png",
+        images: "/DriverControl.png",
+        link: "/portfolio/1",
+        createdAt: "2024-01-15",
+        version: "1.0.0",
       };
-      const hasDefault = projects.some(p => p.id === 1);
+      const hasDefault = data.some(p => p.id === 1);
       if (!hasDefault) {
-        projects.unshift(defaultProject);
-        localStorage.setItem("portfolio", JSON.stringify(projects));
+        // Criar projeto padrão na API
+        await api.createPortfolio(defaultProject);
+        data.unshift(defaultProject);
       }
-      setPortfolio(projects);
-    } catch {
+      setPortfolio(data);
+    } catch (error) {
+      console.error('Erro ao carregar portfólio:', error);
       setPortfolio([]);
     }
   };
 
-  const loadProducts = () => {
+  const loadProducts = async () => {
     try {
-      const stored = localStorage.getItem("pecas");
-      setProducts(stored ? JSON.parse(stored) : []);
-    } catch {
+      const data = await api.getProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
       setProducts([]);
     }
   };
@@ -132,96 +136,77 @@ export default function Admin() {
   };
 
   const saveProducts = (newProducts) => {
-    localStorage.setItem("pecas", JSON.stringify(newProducts));
     setProducts(newProducts);
   };
 
-  const compressImage = (file, maxWidth = 800, quality = 0.8) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
 
-          // Para capturas de tela, manter resolução maior
-          if (width > maxWidth) {
-            height = (maxWidth / width) * height;
-            width = maxWidth;
-          }
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          const compressed = canvas.toDataURL('image/jpeg', quality);
-          resolve(compressed);
-        };
-        img.onerror = () => reject(new Error('Erro ao processar imagem'));
-        img.src = event.target.result;
-      };
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (activeTab === "products") {
-      const productData = {
-        ...form,
-        id: editingId || Date.now(),
-        preco: parseFloat(form.preco) || 0,
-      };
+    try {
+      if (activeTab === "products") {
+        const productData = {
+          nome: form.nome,
+          descricao: form.descricao,
+          categoria: form.categoria,
+          preco: parseFloat(form.preco) || 0,
+          link_compra: form.link_compra,
+          imagem_url: form.imagem_url,
+          loja: form.loja,
+          destaque: form.destaque,
+          disponivel: form.disponivel,
+          clicks: form.clicks || 0
+        };
 
-      let newProducts;
-      if (editingId) {
-        newProducts = products.map((p) => (p.id === editingId ? { ...productData, id: editingId } : p));
+        if (editingId) {
+          await api.updateProduct(editingId, productData);
+        } else {
+          await api.createProduct(productData);
+        }
+
+        await loadProducts();
       } else {
-        newProducts = [...products, productData];
+        // Processar imagens: upload para o backend se houver arquivos
+        let imageUrl = form.image;
+        let imagesUrls = [];
+
+        if (form.imageFile) {
+          const uploadResult = await api.uploadImage(form.imageFile);
+          imageUrl = uploadResult.imageUrl;
+        }
+
+        if (form.imagesFiles && form.imagesFiles.length > 0) {
+          const uploadResult = await api.uploadMultipleImages(form.imagesFiles);
+          imagesUrls = uploadResult.imageUrls;
+        } else if (form.images) {
+          imagesUrls = form.images.split(',').map(i => i.trim()).filter(Boolean);
+        }
+
+        const projectData = {
+          title: form.title,
+          description: form.description,
+          technologies: form.technologies,
+          image: imageUrl,
+          images: imagesUrls.join(','),
+          link: form.link,
+          version: form.version || "1.0.0"
+        };
+
+        if (editingId) {
+          await api.updatePortfolio(editingId, projectData);
+        } else {
+          await api.createPortfolio(projectData);
+        }
+
+        await loadPortfolio();
       }
 
-      saveProducts(newProducts);
-    } else {
-      // Processar imagens: se há uploads, usar base64 comprimidos; se não, usar URLs do input de texto
-      let processedImages = [];
-      if (form.imagesFiles && form.imagesFiles.length > 0) {
-        // Upload via file: já comprimido e separado por '|'
-        processedImages = form.images.split('|').filter(Boolean);
-      } else if (form.images) {
-        // URLs manuais (digitadas)
-        processedImages = form.images.split(',').map(i => i.trim()).filter(Boolean);
-      }
-
-      const projectData = {
-        id: editingId || Date.now(),
-        title: form.title,
-        description: form.description,
-        technologies: form.technologies.split(",").map(t => t.trim()).filter(t => t),
-        image: form.image || "/banerDC.png",
-        images: processedImages,
-        link: form.link,
-        createdAt: form.createdAt || new Date().toISOString().split('T')[0],
-        version: form.version || "1.0.0",
-      };
-
-      const newPortfolio = editingId 
-        ? portfolio.map((p) => (p.id === editingId ? { ...projectData, id: editingId } : p))
-        : [...portfolio, projectData];
-
-      localStorage.setItem("portfolio", JSON.stringify(newPortfolio));
-      setPortfolio(newPortfolio);
-
-      // Forçar reload para limpar cache das imagens antigas (base64 grandes)
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      alert('Erro ao salvar. Tente novamente.');
     }
-    resetForm();
   };
 
   const     resetForm = () => {
@@ -308,25 +293,34 @@ export default function Admin() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const itemType = activeTab === "products" ? "produto" : "projeto";
     if (confirm(`Tem certeza que deseja excluir este ${itemType}?`)) {
-      if (activeTab === "products") {
-        const newProducts = products.filter((p) => p.id !== id);
-        saveProducts(newProducts);
-      } else {
-        const newPortfolio = portfolio.filter((p) => p.id !== id);
-        localStorage.setItem("portfolio", JSON.stringify(newPortfolio));
-        setPortfolio(newPortfolio);
+      try {
+        if (activeTab === "products") {
+          await api.deleteProduct(id);
+          await loadProducts();
+        } else {
+          await api.deletePortfolio(id);
+          await loadPortfolio();
+        }
+      } catch (error) {
+        console.error('Erro ao deletar:', error);
+        alert('Erro ao deletar. Tente novamente.');
       }
     }
   };
 
-  const toggleStatus = (id) => {
-    const newProducts = products.map((p) =>
-      p.id === id ? { ...p, disponivel: !p.disponivel } : p
-    );
-    saveProducts(newProducts);
+  const toggleStatus = async (id) => {
+    try {
+      const product = products.find(p => p.id === id);
+      if (product) {
+        await api.updateProduct(id, { ...product, disponivel: !product.disponivel });
+        await loadProducts();
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+    }
   };
 
   const formatPrice = (price) => {
@@ -613,16 +607,13 @@ export default function Admin() {
                             const file = e.target.files?.[0];
                             if (file) {
                               try {
-                                // Preview instantâneo (não vai pro localStorage)
+                                // Preview instantâneo (não vai pro backend ainda)
                                 const previewUrl = URL.createObjectURL(file);
-                                // Comprime MUITO para thumbnail (max 150px, qualidade 0.3)
-                                const compressed = await compressImage(file);
-                                
-                                setForm({ 
-                                  ...form, 
+
+                                setForm({
+                                  ...form,
                                   imageFile: file,
-                                  imagePreview: previewUrl,
-                                  image: compressed // thumbnail tiny (~5-10KB)
+                                  imagePreview: previewUrl
                                 });
                               } catch (err) {
                                 alert(err.message || 'Erro ao processar imagem');
@@ -672,15 +663,10 @@ export default function Admin() {
                              try {
                                // Previews (não salvos)
                                const previewUrls = files.map(f => URL.createObjectURL(f));
-                               // Comprime para thumbnails tiny
-                               const compressed = await Promise.all(
-                                 files.map(file => compressImage(file))
-                               );
 
                                setForm({
                                  ...form,
                                  imagesFiles: files,
-                                 images: compressed.join('|'),
                                  imagesPreviews: previewUrls
                                });
                              } catch (err) {

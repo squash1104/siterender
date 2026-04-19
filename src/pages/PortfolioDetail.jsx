@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { api } from "@/lib/api";
 
 export default function PortfolioDetail() {
   const { id } = useParams();
@@ -47,28 +48,29 @@ export default function PortfolioDetail() {
   };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("portfolio");
-      const projects = stored ? JSON.parse(stored) : [];
-      const found = projects.find(p => p.id === parseInt(id));
-      setProject(found);
+    const loadData = async () => {
+      try {
+        // Carregar projeto
+        const projects = await api.getPortfolio();
+        const found = projects.find(p => p.id === parseInt(id));
+        setProject(found);
 
-      // Carregar avaliações do projeto específico
-      const storedReviews = localStorage.getItem(`reviews_${id}`);
-      if (storedReviews) {
-        setReviews(JSON.parse(storedReviews));
+        // Carregar avaliações do projeto
+        if (id) {
+          const reviewsData = await api.getReviews(id);
+          setReviews(reviewsData);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        setProject(null);
+        setReviews([]);
       }
-    } catch {
-      setProject(null);
-    }
+    };
+
+    loadData();
   }, [id]);
 
-  const saveReviews = (updatedReviews) => {
-    localStorage.setItem(`reviews_${id}`, JSON.stringify(updatedReviews));
-    setReviews(updatedReviews);
-  };
-
-  const handleAddReview = (e) => {
+  const handleAddReview = async (e) => {
     e.preventDefault();
 
     if (!newReview.user.trim() || !newReview.comment.trim()) {
@@ -76,29 +78,38 @@ export default function PortfolioDetail() {
       return;
     }
 
-    const review = {
-      id: Date.now(),
-      user: newReview.user.trim(),
-      rating: newReview.rating,
-      date: new Date().toISOString().split('T')[0],
-      comment: newReview.comment.trim(),
-      helpful: 0
-    };
+    try {
+      const review = {
+        portfolio_id: parseInt(id),
+        user: newReview.user.trim(),
+        rating: newReview.rating,
+        comment: newReview.comment.trim()
+      };
 
-    const updatedReviews = [review, ...reviews];
-    saveReviews(updatedReviews);
+      await api.createReview(review);
 
-    setNewReview({ user: "", rating: 5, comment: "" });
-    setShowReviewForm(false);
+      // Recarregar avaliações
+      const reviewsData = await api.getReviews(id);
+      setReviews(reviewsData);
+
+      setNewReview({ user: "", rating: 5, comment: "" });
+      setShowReviewForm(false);
+    } catch (error) {
+      console.error('Erro ao adicionar avaliação:', error);
+      alert('Erro ao adicionar avaliação. Tente novamente.');
+    }
   };
 
-  const handleHelpful = (reviewId) => {
-    const updatedReviews = reviews.map(review =>
-      review.id === reviewId
-        ? { ...review, helpful: review.helpful + 1 }
-        : review
-    );
-    saveReviews(updatedReviews);
+  const handleHelpful = async (reviewId) => {
+    try {
+      await api.markHelpful(reviewId);
+
+      // Recarregar avaliações para atualizar contador
+      const reviewsData = await api.getReviews(id);
+      setReviews(reviewsData);
+    } catch (error) {
+      console.error('Erro ao marcar como útil:', error);
+    }
   };
 
   if (!project) {
