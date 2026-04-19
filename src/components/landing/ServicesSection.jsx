@@ -1,12 +1,13 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Monitor, Wifi, Users, Truck, ArrowRight, Cpu } from "lucide-react";
+import { Monitor, Wifi, Users, Truck, ArrowRight, Cpu, Code } from "lucide-react";
 
 import manutencaoImg from "/Manutenção.jpg";
 import pcGamerImg from "/pc gamer.avif";
 import redeImg from "/rede.webp";
 import buscarImg from "/buscar.webp";
 import assessoriaImg from "/assessoria.jpg";
+import desenvolvimentoImg from "/desenvolvimento.avif";
 
 const services = [
   {
@@ -48,6 +49,14 @@ const services = [
       "Consultoria técnica especializada para identificar as melhores soluções tecnológicas para o seu negócio. Planejamento, implantação e suporte contínuo.",
     features: ["Análise de necessidades", "Plano sob medida", "Suporte contínuo"],
     image: assessoriaImg,
+  },
+  {
+    icon: Code,
+    title: "Desenvolvimento de Sites e Apps",
+    description:
+      "Desenvolvemos websites responsivos, sistemas web personalizados e aplicativos móveis sob medida. Cada projeto é analisado individualmente para oferecer soluções ideais em divulgação, atendimento ao cliente, vendas online, gestão empresarial e presença digital, garantindo usabilidade, performance e resultados excepcionais.",
+    features: ["Websites responsivos", "Apps móveis", "Sistemas web", "Análise personalizada"],
+    image: desenvolvimentoImg,
   },
 ];
 
