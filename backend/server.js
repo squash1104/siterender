@@ -7,10 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
@@ -104,7 +101,7 @@ async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS reviews (
         id SERIAL PRIMARY KEY,
         portfolio_id INTEGER,
-        user TEXT NOT NULL,
+        username TEXT NOT NULL,
         rating INTEGER NOT NULL,
         comment TEXT NOT NULL,
         helpful INTEGER DEFAULT 0,
@@ -213,20 +210,23 @@ app.delete('/api/portfolio/:id', async (req, res) => {
 
 // Avaliações
 app.get('/api/reviews/:portfolioId', async (req, res) => {
+  console.log('portfolio_id:', req.params.portfolioId);
   try {
     const result = await pool.query('SELECT * FROM reviews WHERE portfolio_id = $1 ORDER BY created_at DESC', [req.params.portfolioId]);
+    console.log('reviews result:', result.rows);
     res.json(result.rows);
   } catch (err) {
+    console.error('Erro em reviews:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
 app.post('/api/reviews', async (req, res) => {
-  const { portfolio_id, user, rating, comment } = req.body;
+  const { portfolio_id, username, rating, comment } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO reviews (portfolio_id, user, rating, comment) VALUES ($1, $2, $3, $4) RETURNING id',
-      [portfolio_id, user, rating, comment]
+      'INSERT INTO reviews (portfolio_id, username, rating, comment) VALUES ($1, $2, $3, $4) RETURNING id',
+      [portfolio_id, username, rating, comment]
     );
     res.json({ id: result.rows[0].id });
   } catch (err) {
@@ -269,7 +269,7 @@ app.post('/api/upload-multiple', upload.array('images', 15), (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
 

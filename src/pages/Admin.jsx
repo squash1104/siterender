@@ -277,13 +277,13 @@ export default function Admin() {
         clicks: 0,
         title: item.title || "",
         description: item.description || "",
-        technologies: item.technologies?.join(", ") || "",
+        technologies: item.technologies || "",
         image: item.image || "",
         images: "", // campo de texto limpo na edição (usa preview dos arquivos)
         imageFile: null,
         imagesFiles: [],
         imagePreview: item.image || null,
-        imagesPreviews: item.images || [],
+        imagesPreviews: item.images ? item.images.split(',').map(img => img.trim()) : [],
         link: item.link || "",
         createdAt: item.createdAt || "",
         version: item.version || "",
@@ -866,7 +866,9 @@ export default function Admin() {
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 text-sm">{project.technologies?.join(", ")}</td>
+                        <td className="p-4 text-sm">{Array.isArray(project.technologies)
+                        ? project.technologies.join(', ')
+                        : (project.technologies || 'Nenhuma tecnologia')}</td>
                         <td className="p-4 text-sm">{project.link}</td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-2">

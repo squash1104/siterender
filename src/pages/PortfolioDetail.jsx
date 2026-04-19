@@ -181,11 +181,16 @@ export default function PortfolioDetail() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4">Tecnologias Utilizadas</h2>
           <div className="flex flex-wrap gap-2">
-            {project.technologies?.map((tech) => (
-              <span key={tech} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                {tech}
-              </span>
-            ))}
+            {project.technologies &&
+  (Array.isArray(project.technologies)
+    ? project.technologies
+    : project.technologies.split(",")
+  )
+    .map((tech) => tech.trim())
+    .filter(Boolean)
+    .map((tech, index) => (
+      <span key={index}>{tech}</span>
+    ))}
           </div>
         </div>
 
@@ -200,7 +205,7 @@ export default function PortfolioDetail() {
               >
                 {Array.from({ length: maxSlides }, (_, slideIndex) => (
                   <div key={slideIndex} className="flex-shrink-0 w-full flex gap-4">
-                    {project.images
+                    {(project.images ? project.images.split(',').map(img => img.trim()) : [])
                       .slice(slideIndex * imagesPerSlide, (slideIndex + 1) * imagesPerSlide)
                       .map((url, imgIndex) => (
                         <div key={slideIndex * imagesPerSlide + imgIndex} className="flex-1">
