@@ -47,11 +47,18 @@ export default function PortfolioDetail() {
 
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
+        <Button variant="outline" className="mb-4" asChild>
+          <Link to="/portfolio">← Voltar aos Portfólios</Link>
+        </Button>
         <div className="flex items-start gap-8 mb-8">
+          <Button variant="outline" className="mb-4" asChild>
+            <Link to="/portfolio">← Voltar</Link>
+          </Button>
           <img
-            src={project.image}
+            src={project.image || '/banerDC.png'}
             alt={project.title}
             className="w-32 h-32 rounded-xl object-cover shadow-lg"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
           <div className="flex-1">
             <h1 className="text-3xl font-bold mb-2">{project.title}</h1>
@@ -66,9 +73,11 @@ export default function PortfolioDetail() {
                 <span>Versão {project.version || '1.0.0'}</span>
               </div>
             </div>
-            <Button className="gap-2">
-              <Download className="w-4 h-4" />
-              Acessar Sistema
+            <Button className="gap-2" asChild>
+              <a href={project.link} target="_blank" rel="noopener noreferrer">
+                <Download className="w-4 h-4" />
+                Acessar Sistema
+              </a>
             </Button>
           </div>
         </div>
@@ -93,9 +102,10 @@ export default function PortfolioDetail() {
               {project.images.map((img, index) => (
                 <img
                   key={index}
-                  src={img}
+                  src={img.startsWith('http') ? img : img} // handle URLs
                   alt={`Screenshot ${index + 1}`}
                   className="w-full rounded-lg shadow-md"
+                  onError={(e) => e.target.style.display = 'none'} // hide broken images
                 />
               ))}
             </div>

@@ -175,6 +175,9 @@ export default function ServicesSection() {
                 <Code className="w-5 h-5" />
                 Nosso Portfólio de Desenvolvimento
               </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Conheça nossos projetos desenvolvidos com as melhores tecnologias.
+              </p>
             </DialogHeader>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {portfolioProjects.map((project, index) => (
