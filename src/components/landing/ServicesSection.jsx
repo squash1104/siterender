@@ -67,7 +67,7 @@ const portfolioProjects = [
     title: "DriverControl - Controle de Corridas",
     description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
     technologies: ["Django", "Python", "Bootstrap", "SQLite"],
-    image: "/DriverControl.png",
+    image: "/banerDC.png",
     link: "/drivercontrol",
   },
 ];
