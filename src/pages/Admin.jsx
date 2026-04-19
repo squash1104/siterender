@@ -63,6 +63,8 @@ export default function Admin() {
     image: "",
     images: "",
     link: "",
+    createdAt: "",
+    version: "",
   });
 
   useEffect(() => {
@@ -79,13 +81,15 @@ export default function Admin() {
       const stored = localStorage.getItem("portfolio");
       let projects = stored ? JSON.parse(stored) : [];
       const defaultProject = {
-        id: 1,
-        title: "DriverControl - Controle de Corridas",
-        description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
-        technologies: ["Django", "Python", "Bootstrap", "SQLite"],
-        image: "/banerDC.png",
-        images: ["/DriverControl.png"],
-        link: "/drivercontrol",
+          id: 1,
+          title: "DriverControl - Controle de Corridas",
+          description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
+          technologies: ["Django", "Python", "Bootstrap", "SQLite"],
+          image: "/banerDC.png",
+          images: ["/DriverControl.png"],
+          link: "/portfolio/1",
+          createdAt: "2024-01-15",
+          version: "1.0.0",
       };
       const hasDefault = projects.some(p => p.id === 1);
       if (!hasDefault) {
@@ -157,6 +161,8 @@ export default function Admin() {
         image: form.image,
         images: form.images.split(",").map(i => i.trim()).filter(i => i),
         link: form.link,
+        createdAt: form.createdAt || new Date().toISOString().split('T')[0],
+        version: form.version || "1.0.0",
       };
 
       let newPortfolio;
@@ -192,6 +198,8 @@ export default function Admin() {
       image: "",
       images: "",
       link: "",
+      createdAt: "",
+      version: "",
     });
   };
 
@@ -233,6 +241,8 @@ export default function Admin() {
         image: item.image || "",
         images: item.images?.join(", ") || "",
         link: item.link || "",
+        createdAt: item.createdAt || "",
+        version: item.version || "",
       });
     }
     setEditingId(item.id);
@@ -594,6 +604,28 @@ export default function Admin() {
                           onChange={(e) => setForm({ ...form, link: e.target.value })}
                           placeholder="/drivercontrol"
                         />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="createdAt">Data de Criação</Label>
+                          <Input
+                            id="createdAt"
+                            type="date"
+                            value={form.createdAt}
+                            onChange={(e) => setForm({ ...form, createdAt: e.target.value })}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="version">Versão</Label>
+                          <Input
+                            id="version"
+                            value={form.version}
+                            onChange={(e) => setForm({ ...form, version: e.target.value })}
+                            placeholder="1.0.0"
+                          />
+                        </div>
                       </div>
                     </>
                   )}

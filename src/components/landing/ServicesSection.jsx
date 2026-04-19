@@ -65,13 +65,15 @@ const services = [
 export default function ServicesSection() {
   const [portfolioProjects, setPortfolioProjects] = useState([
     {
-      id: 1,
-      title: "DriverControl - Controle de Corridas",
-      description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
-      technologies: ["Django", "Python", "Bootstrap", "SQLite"],
-      image: "/banerDC.png",
-      images: ["/DriverControl.png"],
-      link: "/drivercontrol",
+        id: 1,
+        title: "DriverControl - Controle de Corridas",
+        description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
+        technologies: ["Django", "Python", "Bootstrap", "SQLite"],
+        image: "/banerDC.png",
+        images: ["/DriverControl.png"],
+        link: "/portfolio/1",
+        createdAt: "2024-01-15",
+        version: "1.0.0",
     },
   ]);
 
@@ -197,9 +199,11 @@ export default function ServicesSection() {
                         </span>
                       ))}
                     </div>
-                    <Button size="sm" variant="outline" className="w-full gap-1">
-                      <ExternalLink className="w-3 h-3" />
-                      Ver Projeto
+                    <Button size="sm" variant="outline" className="w-full gap-1" asChild>
+                      <Link to={`/portfolio/${project.id}`}>
+                        <ExternalLink className="w-3 h-3" />
+                        Ver Projeto
+                      </Link>
                     </Button>
                   </div>
                 </motion.div>

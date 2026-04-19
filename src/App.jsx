@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Pecas from './pages/Pecas';
 import Admin from './pages/Admin';
 import DriverControl from './pages/DriverControl';
+import PortfolioDetail from './pages/PortfolioDetail';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="/pecas" element={<Pecas />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/drivercontrol" element={<DriverControl />} />
+          <Route path="/portfolio/:id" element={<PortfolioDetail />} />
         </Routes>
       </Router>
       <Toaster />
