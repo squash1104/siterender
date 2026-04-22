@@ -61,6 +61,26 @@ PORT=5000
 DATABASE_URL=./portfolio.db
 ```
 
+### Favicon
+Para personalizar o favicon do site, adicione os seguintes arquivos na pasta `public/`:
+
+#### Arquivos Necessários:
+- `favicon.ico` - Ícone principal (16x16, 32x32, 48x48 em um arquivo ICO)
+- `favicon-16x16.png` - Versão PNG 16x16px
+- `favicon-32x32.png` - Versão PNG 32x32px
+- `apple-touch-icon.png` - Ícone para iOS 180x180px
+
+#### Como Gerar:
+1. **Online**: Use ferramentas como [favicon.io](https://favicon.io) ou [realfavicongenerator.net](https://realfavicongenerator.net)
+2. **Do zero**: Crie um logo SVG e converta usando ferramentas online
+3. **De imagem**: Use uma imagem PNG/JPG quadrada e gere os tamanhos necessários
+
+#### Recomendações:
+- **Formato**: PNG com fundo transparente
+- **Tamanho base**: 512x512px (será redimensionado automaticamente)
+- **Cores**: Use as cores da sua marca
+- **Simples**: Mantenha o design limpo e legível em tamanhos pequenos
+
 ## Funcionalidades
 
 ### Sistema de Peças
