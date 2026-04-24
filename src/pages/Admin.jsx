@@ -45,11 +45,18 @@ export default function Admin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("products");
+
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    setCurrentPage(1); // Reset page when changing tabs
+  };
   const [products, setProducts] = useState([]);
   const [portfolio, setPortfolio] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [form, setForm] = useState({
     nome: "",
     descricao: "",
@@ -76,6 +83,16 @@ export default function Admin() {
 
   useEffect(() => {
     const auth = localStorage.getItem("admin_auth");
+    const loginDate = localStorage.getItem("admin_login_date");
+    const today = new Date().toDateString();
+
+    // Invalida login se a data mudou
+    if (auth === "true" && loginDate !== today) {
+      localStorage.removeItem("admin_auth");
+      localStorage.removeItem("admin_login_date");
+      return;
+    }
+
     if (auth === "true") {
       setAuthenticated(true);
       loadProducts();
@@ -121,15 +138,26 @@ export default function Admin() {
     }
   };
 
+  const generateDailyPassword = () => {
+    const today = new Date();
+    const day = today.getDate().toString().padStart(2, '0');
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const year = today.getFullYear().toString().slice(-2);
+    return `LMS${day}${month}${year}`;
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
-    if (username === "admin" && password === "admin123") {
+    const dailyPassword = generateDailyPassword();
+    if (username === "admin" && password === dailyPassword) {
       setAuthenticated(true);
       localStorage.setItem("admin_auth", "true");
+      localStorage.setItem("admin_login_date", new Date().toDateString());
       loadProducts();
       loadPortfolio();
     } else {
-      alert("Credenciais inválidas");
+      const dailyPassword = generateDailyPassword();
+      alert(`Credenciais inválidas. A senha muda diariamente.\n\nPara desenvolvimento: ${dailyPassword}\n\nEm produção, contate o administrador.`);
     }
   };
 
@@ -461,7 +489,7 @@ export default function Admin() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 max-w-md">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
@@ -499,8 +527,11 @@ export default function Admin() {
                       <p className="text-sm">Clique em "Nova Peça" para começar.</p>
                     </div>
                   ) : (
-                    <div className="grid gap-4">
-                      {products.map((product) => (
+                    <>
+                      <div className="grid gap-4">
+                        {products
+                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                          .map((product) => (
                         <Card key={product.id} className="p-4">
                           <div className="flex items-center gap-4">
                             <img
@@ -553,8 +584,35 @@ export default function Admin() {
                             </div>
                           </div>
                         </Card>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+
+                      {/* Pagination */}
+                      {Math.ceil(products.length / itemsPerPage) > 1 && (
+                        <div className="flex items-center justify-between pt-4">
+                          <p className="text-sm text-muted-foreground">
+                            Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, products.length)} a {Math.min(currentPage * itemsPerPage, products.length)} de {products.length} produtos
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                              disabled={currentPage === 1}
+                            >
+                              Anterior
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(Math.min(Math.ceil(products.length / itemsPerPage), currentPage + 1))}
+                              disabled={currentPage === Math.ceil(products.length / itemsPerPage)}
+                            >
+                              Próximo
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                   )}
                 </div>
               </CardContent>
@@ -587,8 +645,11 @@ export default function Admin() {
                       <p className="text-sm">Clique em "Novo Projeto" para começar.</p>
                     </div>
                   ) : (
-                    <div className="grid gap-4">
-                      {portfolio.map((project) => (
+                    <>
+                      <div className="grid gap-4">
+                        {portfolio
+                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                          .map((project) => (
                         <Card key={project.id} className="p-4">
                           <div className="flex items-center gap-4">
                             <img
@@ -640,8 +701,36 @@ export default function Admin() {
                             </div>
                           </div>
                         </Card>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+
+                      {/* Pagination */}
+                      {Math.ceil(portfolio.length / itemsPerPage) > 1 && (
+                        <div className="flex items-center justify-between pt-4">
+                          <p className="text-sm text-muted-foreground">
+                            Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, portfolio.length)} a {Math.min(currentPage * itemsPerPage, portfolio.length)} de {portfolio.length} projetos
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                              disabled={currentPage === 1}
+                            >
+                              Anterior
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(Math.min(Math.ceil(portfolio.length / itemsPerPage), currentPage + 1))}
+                              disabled={currentPage === Math.ceil(portfolio.length / itemsPerPage)}
+                            >
+                              Próximo
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </CardContent>
