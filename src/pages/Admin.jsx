@@ -83,16 +83,6 @@ export default function Admin() {
 
   useEffect(() => {
     const auth = localStorage.getItem("admin_auth");
-    const loginDate = localStorage.getItem("admin_login_date");
-    const today = new Date().toDateString();
-
-    // Invalida login se a data mudou
-    if (auth === "true" && loginDate !== today) {
-      localStorage.removeItem("admin_auth");
-      localStorage.removeItem("admin_login_date");
-      return;
-    }
-
     if (auth === "true") {
       setAuthenticated(true);
       loadProducts();
@@ -138,26 +128,17 @@ export default function Admin() {
     }
   };
 
-  const generateDailyPassword = () => {
-    const today = new Date();
-    const day = today.getDate().toString().padStart(2, '0');
-    const month = (today.getMonth() + 1).toString().padStart(2, '0');
-    const year = today.getFullYear().toString().slice(-2);
-    return `LMS${day}${month}${year}`;
-  };
+
 
   const handleLogin = (e) => {
     e.preventDefault();
-    const dailyPassword = generateDailyPassword();
-    if (username === "admin" && password === dailyPassword) {
+    if (username === "admin" && password === "admin123") {
       setAuthenticated(true);
       localStorage.setItem("admin_auth", "true");
-      localStorage.setItem("admin_login_date", new Date().toDateString());
       loadProducts();
       loadPortfolio();
     } else {
-      const dailyPassword = generateDailyPassword();
-      alert(`Credenciais inválidas. A senha muda diariamente.\n\nPara desenvolvimento: ${dailyPassword}\n\nEm produção, contate o administrador.`);
+      alert("Credenciais inválidas. Verifique usuário e senha.");
     }
   };
 
@@ -418,6 +399,49 @@ export default function Admin() {
 
   if (!authenticated) {
     return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Monitor className="w-12 h-12 text-primary mx-auto mb-4" />
+            <CardTitle className="text-2xl">Admin LMS Tech</CardTitle>
+            <p className="text-muted-foreground">Acesso restrito aos administradores</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Label htmlFor="username">Usuário</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Digite seu usuário"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Digite sua senha"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Entrar
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+
+  return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="bg-card rounded-xl border border-border p-8 w-full max-w-md">
           <div className="text-center mb-6">
