@@ -89,13 +89,23 @@ Para personalizar o favicon do site, adicione os seguintes arquivos na pasta `pu
 - ✅ Controle de estoque
 - ✅ Links de compra
 - ✅ Imagens de produtos
+- ✅ Contador de cliques nos links
+- ✅ Status ativo/inativo
 
 ### Portfólio
 - ✅ Projetos em destaque
 - ✅ Tecnologias utilizadas
 - ✅ Capturas de tela
 - ✅ Sistema de avaliações
-- ✅ Modal ampliado de imagens
+- ✅ Página pública de listagem (/portfolio)
+
+### Painel Administrativo
+- ✅ Acesso restrito com senha dinâmica diária
+- ✅ Abas separadas para produtos e portfólio
+- ✅ Interface moderna com Cards
+- ✅ Paginação automática (10 itens por página)
+- ✅ Upload de imagens múltiplas
+- ✅ Edição e exclusão de registros
 
 ### Sistema de Avaliações
 - ✅ Avaliação por estrelas (1-5)
@@ -103,6 +113,32 @@ Para personalizar o favicon do site, adicione os seguintes arquivos na pasta `pu
 - ✅ Estatísticas em tempo real
 - ✅ Votos "útil" nas avaliações
 - ✅ Interface similar ao Google Play
+
+## Administração
+
+### Acesso ao Painel Admin
+1. Acesse `/admin` no seu site
+2. **Usuário**: `admin`
+3. **Senha**: `LMS` + data atual no formato DDMMYY
+   - Exemplo: Para 15/01/2025 → `LMS150125`
+4. A senha muda automaticamente todos os dias
+
+### Gerenciando Peças
+- **Cadastrar**: Use o botão "Nova Peça" para adicionar produtos
+- **Editar**: Clique no ícone de lápis para modificar
+- **Status**: Use o ícone de olho para ativar/desativar produtos
+- **Excluir**: Clique na lixeira para remover (permanente)
+
+### Gerenciando Portfólio
+- **Cadastrar**: Use o botão "Novo Projeto" para adicionar trabalhos
+- **Editar**: Clique no ícone de lápis para modificar
+- **Excluir**: Clique na lixeira para remover projetos
+
+### Upload de Imagens
+- **Produtos**: Campo "Imagem Principal" (URL ou arquivo)
+- **Portfólio**: "Imagem Principal" + múltiplas capturas de tela
+- **Formatos**: JPG, PNG, WebP (máx. 5MB por imagem)
+- **Otimização**: Imagens são comprimidas automaticamente
 
 ## Deploy no Render
 
