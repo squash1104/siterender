@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Monitor, ShoppingCart } from "lucide-react";
+import { Search, Monitor, ShoppingCart, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 const categories = [
   "Todos",
@@ -26,61 +27,24 @@ export default function Pecas() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Todos");
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("pecas");
-      let loadedProducts = stored ? JSON.parse(stored) : [];
-      if (loadedProducts.length === 0) {
-        // Adicionar produtos de exemplo se nenhum existir
-        loadedProducts = [
-          {
-            id: 1,
-            nome: "Placa de Vídeo RTX 4060",
-            descricao: "Placa de vídeo NVIDIA GeForce RTX 4060, 8GB GDDR6",
-            categoria: "Placa de Vídeo",
-            preco: 2499.99,
-            imagem_url: "/pc gamer.avif",
-            link_compra: "https://www.mercadolivre.com.br/",
-            loja: "Mercado Livre",
-            destaque: true,
-            disponivel: true,
-            clicks: 0,
-          },
-          {
-            id: 2,
-            nome: "Memória RAM DDR4 16GB",
-            descricao: "Kit 2x8GB DDR4 3200MHz Kingston",
-            categoria: "Memória RAM",
-            preco: 299.99,
-            imagem_url: "/Manutenção.jpg",
-            link_compra: "https://www.kabum.com.br/",
-            loja: "Kabum",
-            destaque: false,
-            disponivel: true,
-            clicks: 0,
-          },
-          {
-            id: 3,
-            nome: "SSD NVMe 1TB",
-            descricao: "SSD NVMe M.2 1TB Samsung 980",
-            categoria: "HD / SSD",
-            preco: 449.99,
-            imagem_url: "/rede.webp",
-            link_compra: "https://www.amazon.com.br/",
-            loja: "Amazon",
-            destaque: false,
-            disponivel: true,
-            clicks: 0,
-          },
-        ];
-        localStorage.setItem("pecas", JSON.stringify(loadedProducts));
-      }
-      setProducts(loadedProducts);
-    } catch {
-      setProducts([]);
-    }
+    loadProducts();
   }, []);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -90,12 +54,28 @@ export default function Pecas() {
     return matchesSearch && matchesCategory && product.disponivel;
   });
 
-  const handleProductClick = (productId) => {
-    const updatedProducts = products.map((p) =>
-      p.id === productId ? { ...p, clicks: (p.clicks || 0) + 1 } : p
-    );
-    localStorage.setItem("pecas", JSON.stringify(updatedProducts));
-    setProducts(updatedProducts);
+  const handleProductClick = async (productId) => {
+    try {
+      // Encontra o produto para atualizar localmente primeiro
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        // Atualiza localmente para feedback imediato
+        const updatedProducts = products.map((p) =>
+          p.id === productId ? { ...p, clicks: (p.clicks || 0) + 1 } : p
+        );
+        setProducts(updatedProducts);
+
+        // Atualiza no servidor
+        await api.updateProduct(productId, {
+          ...product,
+          clicks: (product.clicks || 0) + 1
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar cliques:', error);
+      // Reverte a mudança local em caso de erro
+      loadProducts();
+    }
   };
 
   const formatPrice = (price) => {
@@ -183,8 +163,14 @@ export default function Pecas() {
 
       {/* Products Grid */}
       <div className="max-w-7xl mx-auto px-4 pb-12">
-        {filteredProducts.length === 0 ? (
+        {loading ? (
           <div className="text-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Carregando produtos...</p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-20">
+            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground text-lg">
               Nenhum produto encontrado
             </p>

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Monitor, Plus, Trash2, Edit2, Eye, EyeOff } from "lucide-react";
+import { Monitor, Plus, Trash2, Edit2, Eye, EyeOff, Package, Briefcase, LogOut, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 
 const categories = [
@@ -46,6 +49,7 @@ export default function Admin() {
   const [portfolio, setPortfolio] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     nome: "",
     descricao: "",
@@ -119,13 +123,67 @@ export default function Admin() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (username === "lmstech" && password === "admin123") {
-      localStorage.setItem("admin_auth", "true");
+    if (username === "admin" && password === "admin123") {
       setAuthenticated(true);
+      localStorage.setItem("admin_auth", "true");
       loadProducts();
+      loadPortfolio();
     } else {
-      alert("Usuário ou senha incorretos");
+      alert("Credenciais inválidas");
     }
+  };
+
+  const handleLogout = () => {
+    setAuthenticated(false);
+    localStorage.removeItem("admin_auth");
+    setUsername("");
+    setPassword("");
+    setActiveTab("products");
+    setShowForm(false);
+    setEditingId(null);
+  };
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Monitor className="w-12 h-12 text-primary mx-auto mb-4" />
+            <CardTitle className="text-2xl">Admin LMS Tech</CardTitle>
+            <p className="text-muted-foreground">Acesso restrito aos administradores</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Label htmlFor="username">Usuário</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Digite seu usuário"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Digite sua senha"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Entrar
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   };
 
   const handleLogout = () => {
@@ -382,10 +440,11 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Monitor className="w-6 h-6 text-primary" />
-            <span className="font-bold text-lg">Admin - Peças</span>
+            <span className="font-bold text-lg">Admin LMS Tech</span>
           </div>
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
               Sair
             </Button>
             {navLinks.map((link) => (
@@ -402,37 +461,196 @@ export default function Admin() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {activeTab === "products" ? "Gerenciar Peças" : "Gerenciar Portfólio"}
-            </h1>
-            <p className="text-muted-foreground">
-              {activeTab === "products"
-                ? `${products.length} produto(s) cadastrado(s)`
-                : `${portfolio.length} projeto(s) cadastrado(s)`}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant={activeTab === "products" ? "default" : "outline"}
-              onClick={() => setActiveTab("products")}
-            >
-              Peças
-            </Button>
-            <Button
-              variant={activeTab === "portfolio" ? "default" : "outline"}
-              onClick={() => setActiveTab("portfolio")}
-            >
-              Portfólio
-            </Button>
-            <Button onClick={() => setShowForm(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              {activeTab === "products" ? "Nova Peça" : "Novo Projeto"}
-            </Button>
-          </div>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="products" className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Peças ({products.length})
+            </TabsTrigger>
+            <TabsTrigger value="portfolio" className="flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Portfólio ({portfolio.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Gerenciar Peças</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Adicione, edite e organize as peças disponíveis na loja
+                    </p>
+                  </div>
+                  <Button onClick={() => setShowForm(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Peça
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Products List */}
+                <div className="space-y-4">
+                  {products.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhuma peça cadastrada ainda.</p>
+                      <p className="text-sm">Clique em "Nova Peça" para começar.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      {products.map((product) => (
+                        <Card key={product.id} className="p-4">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={product.imagem_url || '/pc gamer.avif'}
+                              alt={product.nome}
+                              className="w-16 h-16 object-cover rounded-lg border"
+                              onError={(e) => { e.currentTarget.src = '/pc gamer.avif'; }}
+                            />
+                            <div className="flex-1">
+                              <h3 className="font-medium">{product.nome}</h3>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {product.descricao}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline">{product.categoria}</Badge>
+                                <span className="text-sm font-medium text-primary">
+                                  {formatPrice(product.preco)}
+                                </span>
+                                {product.destaque && (
+                                  <Badge variant="secondary">Destaque</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleStatus(product.id)}
+                              >
+                                {product.disponivel ? (
+                                  <Eye className="w-4 h-4" />
+                                ) : (
+                                  <EyeOff className="w-4 h-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(product)}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDelete(product.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="portfolio" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Gerenciar Portfólio</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Gerencie os projetos e trabalhos da sua empresa
+                    </p>
+                  </div>
+                  <Button onClick={() => setShowForm(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Projeto
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Portfolio List */}
+                <div className="space-y-4">
+                  {portfolio.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum projeto cadastrado ainda.</p>
+                      <p className="text-sm">Clique em "Novo Projeto" para começar.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      {portfolio.map((project) => (
+                        <Card key={project.id} className="p-4">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={project.image || '/banerDC.png'}
+                              alt={project.title}
+                              className="w-16 h-16 object-cover rounded-lg border"
+                              onError={(e) => { e.currentTarget.src = '/banerDC.png'; }}
+                            />
+                            <div className="flex-1">
+                              <h3 className="font-medium">{project.title}</h3>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {project.description}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {project.technologies && (
+                                  <div className="flex gap-1">
+                                    {(Array.isArray(project.technologies)
+                                      ? project.technologies
+                                      : project.technologies.split(",")
+                                    )
+                                      .slice(0, 2)
+                                      .map((tech, index) => (
+                                        <Badge key={index} variant="outline" className="text-xs">
+                                          {tech.trim()}
+                                        </Badge>
+                                      ))}
+                                  </div>
+                                )}
+                                {project.version && (
+                                  <Badge variant="secondary">v{project.version}</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(project)}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDelete(project.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Form Modal */}
+        {showForm && (
 
         {/* Form Modal */}
         {showForm && (
@@ -746,155 +964,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Items List */}
-        {(activeTab === "products" ? products : portfolio).length === 0 ? (
-          <div className="text-center py-20 bg-muted/30 rounded-xl">
-            <p className="text-muted-foreground text-lg">
-              {activeTab === "products" ? "Nenhum produto cadastrado" : "Nenhum projeto cadastrado"}
-            </p>
-            <Button onClick={() => setShowForm(true)} className="mt-4">
-              <Plus className="w-4 h-4 mr-2" />
-              {activeTab === "products" ? "Cadastrar Primeiro Produto" : "Cadastrar Primeiro Projeto"}
-            </Button>
-          </div>
-        ) : (
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                {activeTab === "products" ? (
-                  <tr>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Produto</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Categoria</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Preço</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Loja</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Cliques</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">Ações</th>
-                  </tr>
-                ) : (
-                  <tr>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Projeto</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Tecnologias</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Link</th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">Ações</th>
-                  </tr>
-                )}
-              </thead>
-              <tbody className="divide-y divide-border">
-                {activeTab === "products"
-                  ? products.map((product) => (
-                      <tr key={product.id} className="hover:bg-muted/30">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            {product.imagem_url && (
-                              <img
-                                src={product.imagem_url}
-                                alt={product.nome}
-                                className="w-12 h-12 object-cover rounded"
-                              />
-                            )}
-                            <div>
-                              <p className="font-medium">{product.nome}</p>
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                                {product.descricao}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4 text-sm">{product.categoria}</td>
-                        <td className="p-4 font-bold">{formatPrice(product.preco)}</td>
-                        <td className="p-4 text-sm">{product.loja}</td>
-                        <td className="p-4 text-sm">{product.clicks || 0}</td>
-                        <td className="p-4">
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              product.disponivel
-                                ? "bg-green-100 text-green-700"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {product.disponivel ? "Ativo" : "Inativo"}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => toggleStatus(product.id)}
-                              className="p-2 hover:bg-muted rounded"
-                              title={product.disponivel ? "Desativar" : "Ativar"}
-                            >
-                              {product.disponivel ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleEdit(product)}
-                              className="p-2 hover:bg-muted rounded"
-                              title="Editar"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(product.id)}
-                              className="p-2 hover:bg-muted rounded text-red-500"
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  : portfolio.map((project) => (
-                      <tr key={project.id} className="hover:bg-muted/30">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            {project.image && (
-                              <img
-                                src={project.image}
-                                alt={project.title}
-                                className="w-12 h-12 object-cover rounded"
-                              />
-                            )}
-                            <div>
-                              <p className="font-medium">{project.title}</p>
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                                {project.description}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4 text-sm">{Array.isArray(project.technologies)
-                        ? project.technologies.join(', ')
-                        : (project.technologies || 'Nenhuma tecnologia')}</td>
-                        <td className="p-4 text-sm">{project.link}</td>
-                        <td className="p-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleEdit(project)}
-                              className="p-2 hover:bg-muted rounded"
-                              title="Editar"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(project.id)}
-                              className="p-2 hover:bg-muted rounded text-red-500"
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
-  );
 }
