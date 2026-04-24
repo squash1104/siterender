@@ -23,7 +23,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -92,6 +97,7 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   await initializeDatabaseConnection();
   await initializeDatabase(); // Garante que as tabelas existem ao subir o app
+  console.log('Servidor inicializado com sucesso!');
 });
 
 // Helper function to execute queries on both databases
@@ -244,6 +250,7 @@ async function initializeDatabase() {
 }
 
 // Rotas da API
+console.log('Registrando rotas da API...');
 
 // Produtos
 app.get('/api/products', async (req, res) => {
@@ -476,7 +483,13 @@ app.listen(PORT, '0.0.0.0', () => {
 
 // Fechar pool ao encerrar
 process.on('SIGINT', async () => {
-  await pool.end();
-  console.log('Pool PostgreSQL fechado.');
+  if (pool && typeof pool.close === 'function') {
+    await pool.close();
+  } else if (pool && typeof pool.end === 'function') {
+    await pool.end();
+  }
+  console.log('Banco de dados fechado.');
   process.exit(0);
 });
+
+console.log('Rotas registradas com sucesso!');
