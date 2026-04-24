@@ -2,20 +2,9 @@
 > site@0.0.0 dev
 > vite
 
+Port 5174 is in use, trying another one...
 
-  VITE v6.4.2  ready in 806 ms
+  VITE v6.4.2  ready in 786 ms
 
-  ➜  Local:   http://localhost:5174/
-  ➜  Network: http://192.168.18.48:5174/
-Sending Request to the Target: GET /api/products
-proxy error Error: connect ECONNREFUSED ::1:5000
-    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1549:16) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '::1',
-  port: 5000
-}
-2:35:36 PM [vite] http proxy error: /api/products
-Error: connect ECONNREFUSED ::1:5000
-    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1549:16)
+  ➜  Local:   http://localhost:5175/
+  ➜  Network: http://192.168.18.48:5175/
