@@ -119,9 +119,8 @@ Para personalizar o favicon do site, adicione os seguintes arquivos na pasta `pu
 ### Acesso ao Painel Admin
 1. Acesse `/admin` no seu site
 2. **Usuário**: `admin`
-3. **Senha**: `LMS` + data atual no formato DDMMYY
-   - Exemplo: Para 15/01/2025 → `LMS150125`
-4. A senha muda automaticamente todos os dias
+3. **Senha**: `admin123`
+4. A senha é fixa para facilitar o acesso
 
 ### Gerenciando Peças
 - **Cadastrar**: Use o botão "Nova Peça" para adicionar produtos
