@@ -1,10 +1,23 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+
+// Database configuration - use SQLite for development, PostgreSQL for production
+let db;
+if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL.includes('render.com')) {
+  const { Pool } = require('pg');
+  db = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+} else {
+  const sqlite3 = require('sqlite3').verbose();
+  const { open } = require('sqlite');
+  db = null; // Will be initialized later
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,78 +59,185 @@ const upload = multer({
   }
 });
 
-// Inicializar banco de dados PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : false
-});
+// Initialize database based on environment
+let pool;
+async function initializeDatabaseConnection() {
+  if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL.includes('render.com')) {
+    // Use PostgreSQL for production
+    pool = db;
+    pool.on('error', (err) => {
+      console.error('Erro inesperado no pool PostgreSQL:', err);
+    });
+  } else {
+    // Use SQLite for development
+    const path = require('path');
+    const fs = require('fs');
+    const sqlite3 = require('sqlite3').verbose();
+    const { open } = require('sqlite');
+
+    // Ensure database directory exists
+    const dbDir = path.dirname(process.env.DATABASE_URL);
+    if (dbDir !== '.' && !fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    pool = await open({
+      filename: process.env.DATABASE_URL,
+      driver: sqlite3.Database,
+    });
+  }
+}
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Servidor rodando na porta ${PORT}`);
+  await initializeDatabaseConnection();
   await initializeDatabase(); // Garante que as tabelas existem ao subir o app
 });
 
-pool.on('error', (err) => {
-  console.error('Erro inesperado no pool PostgreSQL:', err);
-});
+// Helper function to execute queries on both databases
+function executeQuery(query, params = []) {
+  const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+
+  if (isSQLite) {
+    return pool.all(query, params);
+  } else {
+    return pool.query(query, params);
+  }
+}
+
+// Helper function to execute non-query commands
+function executeRun(query, params = []) {
+  const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+
+  if (isSQLite) {
+    return pool.run(query, params);
+  } else {
+    return pool.query(query, params);
+  }
+}
 
 // Criar tabelas
 async function initializeDatabase() {
   try {
-    // Dropar tabelas existentes para recriar com estrutura correta
-    await pool.query('DROP TABLE IF EXISTS reviews CASCADE');
-    await pool.query('DROP TABLE IF EXISTS portfolio CASCADE');
-    await pool.query('DROP TABLE IF EXISTS products CASCADE');
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
 
-    console.log('Tabelas antigas removidas.');
+    if (isSQLite) {
+      // SQLite queries
+      console.log('Usando SQLite para desenvolvimento...');
 
-    // Tabela de produtos
-    await pool.query(`
-      CREATE TABLE products (
-        id SERIAL PRIMARY KEY,
-        nome TEXT NOT NULL,
-        descricao TEXT,
-        categoria TEXT,
-        preco REAL,
-        link_compra TEXT,
-        imagem_url TEXT,
-        loja TEXT,
-        destaque BOOLEAN DEFAULT FALSE,
-        disponivel BOOLEAN DEFAULT TRUE,
-        clicks INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+      // Dropar tabelas existentes
+      await pool.exec('DROP TABLE IF EXISTS reviews');
+      await pool.exec('DROP TABLE IF EXISTS portfolio');
+      await pool.exec('DROP TABLE IF EXISTS products');
 
-    // Tabela de portfólio
-    await pool.query(`
-      CREATE TABLE portfolio (
-        id BIGSERIAL PRIMARY KEY,
-        title TEXT NOT NULL,
-        description TEXT,
-        technologies TEXT,
-        image TEXT,
-        images TEXT,
-        link TEXT,
-        version TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+      console.log('Tabelas antigas removidas.');
 
-    // Tabela de avaliações
-    await pool.query(`
-      CREATE TABLE reviews (
-        id SERIAL PRIMARY KEY,
-        portfolio_id BIGINT REFERENCES portfolio(id) ON DELETE CASCADE,
-        username TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        comment TEXT NOT NULL,
-        helpful INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+      // Tabela de produtos
+      await pool.exec(`
+        CREATE TABLE products (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nome TEXT NOT NULL,
+          descricao TEXT,
+          categoria TEXT,
+          preco REAL,
+          link_compra TEXT,
+          imagem_url TEXT,
+          loja TEXT,
+          destaque INTEGER DEFAULT 0,
+          disponivel INTEGER DEFAULT 1,
+          clicks INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
 
-    console.log('Tabelas recriadas com estrutura correta.');
+      // Tabela de portfólio
+      await pool.exec(`
+        CREATE TABLE portfolio (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          description TEXT,
+          technologies TEXT,
+          image TEXT,
+          images TEXT,
+          link TEXT,
+          version TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Tabela de avaliações
+      await pool.exec(`
+        CREATE TABLE reviews (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          portfolio_id INTEGER,
+          username TEXT NOT NULL,
+          rating INTEGER NOT NULL,
+          comment TEXT NOT NULL,
+          helpful INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (portfolio_id) REFERENCES portfolio(id) ON DELETE CASCADE
+        )
+      `);
+
+    } else {
+      // PostgreSQL queries
+      console.log('Usando PostgreSQL para produção...');
+
+      // Dropar tabelas existentes para recriar com estrutura correta
+      await pool.query('DROP TABLE IF EXISTS reviews CASCADE');
+      await pool.query('DROP TABLE IF EXISTS portfolio CASCADE');
+      await pool.query('DROP TABLE IF EXISTS products CASCADE');
+
+      console.log('Tabelas antigas removidas.');
+
+      // Tabela de produtos
+      await pool.query(`
+        CREATE TABLE products (
+          id SERIAL PRIMARY KEY,
+          nome TEXT NOT NULL,
+          descricao TEXT,
+          categoria TEXT,
+          preco REAL,
+          link_compra TEXT,
+          imagem_url TEXT,
+          loja TEXT,
+          destaque BOOLEAN DEFAULT FALSE,
+          disponivel BOOLEAN DEFAULT TRUE,
+          clicks INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Tabela de portfólio
+      await pool.query(`
+        CREATE TABLE portfolio (
+          id BIGSERIAL PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          technologies TEXT,
+          image TEXT,
+          images TEXT,
+          link TEXT,
+          version TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Tabela de avaliações
+      await pool.query(`
+        CREATE TABLE reviews (
+          id SERIAL PRIMARY KEY,
+          portfolio_id BIGINT REFERENCES portfolio(id) ON DELETE CASCADE,
+          username TEXT NOT NULL,
+          rating INTEGER NOT NULL,
+          comment TEXT NOT NULL,
+          helpful INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    }
+
+    console.log('Tabelas criadas com sucesso.');
   } catch (err) {
     console.error('Erro ao inicializar banco de dados:', err);
   }
@@ -128,9 +248,12 @@ async function initializeDatabase() {
 // Produtos
 app.get('/api/products', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products ORDER BY created_at DESC');
-    res.json(result.rows);
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const result = await executeQuery('SELECT * FROM products ORDER BY created_at DESC');
+    const rows = isSQLite ? result : result.rows;
+    res.json(rows);
   } catch (err) {
+    console.error('Erro em GET /api/products:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -138,12 +261,20 @@ app.get('/api/products', async (req, res) => {
 app.post('/api/products', async (req, res) => {
   const { nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO products (nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
-      [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false, clicks || 0]
-    );
-    res.json({ id: result.rows[0].id });
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite
+      ? 'INSERT INTO products (nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      : 'INSERT INTO products (nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id';
+
+    const result = await executeRun(query, [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false ? 1 : 0, clicks || 0]);
+
+    if (isSQLite) {
+      res.json({ id: result.lastID });
+    } else {
+      res.json({ id: result.rows[0].id });
+    }
   } catch (err) {
+    console.error('Erro em POST /api/products:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -151,21 +282,31 @@ app.post('/api/products', async (req, res) => {
 app.put('/api/products/:id', async (req, res) => {
   const { nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE products SET nome = $1, descricao = $2, categoria = $3, preco = $4, link_compra = $5, imagem_url = $6, loja = $7, destaque = $8, disponivel = $9, clicks = $10 WHERE id = $11',
-      [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false, clicks || 0, req.params.id]
-    );
-    res.json({ changes: result.rowCount });
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite
+      ? 'UPDATE products SET nome = ?, descricao = ?, categoria = ?, preco = ?, link_compra = ?, imagem_url = ?, loja = ?, destaque = ?, disponivel = ?, clicks = ? WHERE id = ?'
+      : 'UPDATE products SET nome = $1, descricao = $2, categoria = $3, preco = $4, link_compra = $5, imagem_url = $6, loja = $7, destaque = $8, disponivel = $9, clicks = $10 WHERE id = $11';
+
+    const result = await executeRun(query, [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false ? 1 : 0, clicks || 0, req.params.id]);
+
+    const changes = isSQLite ? result.changes : result.rowCount;
+    res.json({ changes });
   } catch (err) {
+    console.error('Erro em PUT /api/products:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
-    res.json({ changes: result.rowCount });
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite ? 'DELETE FROM products WHERE id = ?' : 'DELETE FROM products WHERE id = $1';
+
+    const result = await executeRun(query, [req.params.id]);
+    const changes = isSQLite ? result.changes : result.rowCount;
+    res.json({ changes });
   } catch (err) {
+    console.error('Erro em DELETE /api/products:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -173,9 +314,12 @@ app.delete('/api/products/:id', async (req, res) => {
 // Portfólio
 app.get('/api/portfolio', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM portfolio ORDER BY created_at DESC');
-    res.json(result.rows);
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const result = await executeQuery('SELECT * FROM portfolio ORDER BY created_at DESC');
+    const rows = isSQLite ? result : result.rows;
+    res.json(rows);
   } catch (err) {
+    console.error('Erro em GET /api/portfolio:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -183,12 +327,20 @@ app.get('/api/portfolio', async (req, res) => {
 app.post('/api/portfolio', async (req, res) => {
   const { title, description, technologies, image, images, link, version } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO portfolio (title, description, technologies, image, images, link, version) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-      [title, description, technologies, image, images, link, version]
-    );
-    res.json({ id: result.rows[0].id });
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite
+      ? 'INSERT INTO portfolio (title, description, technologies, image, images, link, version) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      : 'INSERT INTO portfolio (title, description, technologies, image, images, link, version) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id';
+
+    const result = await executeRun(query, [title, description, technologies, image, images, link, version]);
+
+    if (isSQLite) {
+      res.json({ id: result.lastID });
+    } else {
+      res.json({ id: result.rows[0].id });
+    }
   } catch (err) {
+    console.error('Erro em POST /api/portfolio:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -196,21 +348,31 @@ app.post('/api/portfolio', async (req, res) => {
 app.put('/api/portfolio/:id', async (req, res) => {
   const { title, description, technologies, image, images, link, version } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE portfolio SET title = $1, description = $2, technologies = $3, image = $4, images = $5, link = $6, version = $7 WHERE id = $8',
-      [title, description, technologies, image, images, link, version, req.params.id]
-    );
-    res.json({ changes: result.rowCount });
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite
+      ? 'UPDATE portfolio SET title = ?, description = ?, technologies = ?, image = ?, images = ?, link = ?, version = ? WHERE id = ?'
+      : 'UPDATE portfolio SET title = $1, description = $2, technologies = $3, image = $4, images = $5, link = $6, version = $7 WHERE id = $8';
+
+    const result = await executeRun(query, [title, description, technologies, image, images, link, version, req.params.id]);
+
+    const changes = isSQLite ? result.changes : result.rowCount;
+    res.json({ changes });
   } catch (err) {
+    console.error('Erro em PUT /api/portfolio:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
 app.delete('/api/portfolio/:id', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM portfolio WHERE id = $1', [req.params.id]);
-    res.json({ changes: result.rowCount });
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite ? 'DELETE FROM portfolio WHERE id = ?' : 'DELETE FROM portfolio WHERE id = $1';
+
+    const result = await executeRun(query, [req.params.id]);
+    const changes = isSQLite ? result.changes : result.rowCount;
+    res.json({ changes });
   } catch (err) {
+    console.error('Erro em DELETE /api/portfolio:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -219,9 +381,13 @@ app.delete('/api/portfolio/:id', async (req, res) => {
 app.get('/api/reviews/:portfolioId', async (req, res) => {
   console.log('portfolio_id:', req.params.portfolioId);
   try {
-    const result = await pool.query('SELECT * FROM reviews WHERE portfolio_id = $1 ORDER BY created_at DESC', [req.params.portfolioId]);
-    console.log('reviews result:', result.rows);
-    res.json(result.rows);
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite ? 'SELECT * FROM reviews WHERE portfolio_id = ? ORDER BY created_at DESC' : 'SELECT * FROM reviews WHERE portfolio_id = $1 ORDER BY created_at DESC';
+
+    const result = await executeQuery(query, [req.params.portfolioId]);
+    const rows = isSQLite ? result : result.rows;
+    console.log('reviews result:', rows);
+    res.json(rows);
   } catch (err) {
     console.error('Erro em reviews:', err);
     res.status(500).json({ error: err.message });
@@ -232,12 +398,20 @@ app.post('/api/reviews', async (req, res) => {
   console.log('>>> POST review body:', req.body);
   const { portfolio_id, username, rating, comment } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO reviews (portfolio_id, username, rating, comment) VALUES ($1, $2, $3, $4) RETURNING id',
-      [portfolio_id, username, rating, comment]
-    );
-    console.log('>>> Review criado:', result.rows[0]);
-    res.json({ id: result.rows[0].id });
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite
+      ? 'INSERT INTO reviews (portfolio_id, username, rating, comment) VALUES (?, ?, ?, ?)'
+      : 'INSERT INTO reviews (portfolio_id, username, rating, comment) VALUES ($1, $2, $3, $4) RETURNING id';
+
+    const result = await executeRun(query, [portfolio_id, username, rating, comment]);
+
+    if (isSQLite) {
+      console.log('>>> Review criado:', result.lastID);
+      res.json({ id: result.lastID });
+    } else {
+      console.log('>>> Review criado:', result.rows[0]);
+      res.json({ id: result.rows[0].id });
+    }
   } catch (err) {
     console.error('>>> ERRO ao criar review:', err.stack || err.message);
     res.status(500).json({ error: err.message });
@@ -246,12 +420,14 @@ app.post('/api/reviews', async (req, res) => {
 
 app.put('/api/reviews/:id/helpful', async (req, res) => {
   try {
-    const result = await pool.query(
-      'UPDATE reviews SET helpful = helpful + 1 WHERE id = $1',
-      [req.params.id]
-    );
-    res.json({ changes: result.rowCount });
+    const isSQLite = process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL.includes('render.com');
+    const query = isSQLite ? 'UPDATE reviews SET helpful = helpful + 1 WHERE id = ?' : 'UPDATE reviews SET helpful = helpful + 1 WHERE id = $1';
+
+    const result = await executeRun(query, [req.params.id]);
+    const changes = isSQLite ? result.changes : result.rowCount;
+    res.json({ changes });
   } catch (err) {
+    console.error('Erro em PUT /api/reviews/:id/helpful:', err);
     res.status(500).json({ error: err.message });
   }
 });
