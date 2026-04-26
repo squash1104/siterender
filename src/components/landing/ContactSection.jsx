@@ -14,8 +14,8 @@ const contactInfo = [
   {
     icon: Phone,
     label: "WhatsApp",
-    value: "(65) 99961-6000",
-    href: "https://wa.me/5565999616000",
+    value: "(65) 92001-2031",
+    href: "https://wa.me/5565920012031",
   },
   {
     icon: Mail,
@@ -26,7 +26,7 @@ const contactInfo = [
   {
     icon: Clock,
     label: "Horário",
-    value: "Seg-Sex: 08h às 17h",
+    value: "Seg-Sex: 08h às 17h\nSáb e Dom: Plantão",
     href: null,
   },
 ];
@@ -115,7 +115,7 @@ export default function ContactSection() {
             ))}
 
             <a
-              href="https://wa.me/5565999616000"
+              href="https://wa.me/5565920012031"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
