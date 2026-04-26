@@ -8,7 +8,8 @@ import { Phone, Mail, MapPin, Send, MessageCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 // Configure seu email em https://web3forms.com (GRÁTIS)
-// Ou use https://formspree.io
+// Crie uma conta gratuita e substitua a access_key abaixo
+// Você pode configurar para receber emails em contato@lmstech.com.br e lucianolrv@gmail.com
 
 const contactInfo = [
   {
@@ -39,23 +40,68 @@ export default function ContactSection() {
     e.preventDefault();
     setSending(true);
 
-    // Armazena a mensagem para análise posterior (pode integrar com API depois)
-    const messageData = {
-      nome: form.name,
-      email: form.email,
-      telefone: form.phone,
-      mensagem: form.message,
-      data: new Date().toISOString(),
-    };
-    
-    // Salva localmente (temporário ate configurar API de email)
-    const messages = JSON.parse(localStorage.getItem("mensagens") || "[]");
-    messages.push(messageData);
-    localStorage.setItem("mensagens", JSON.stringify(messages));
-    
-    toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
-    setForm({ name: "", email: "", phone: "", message: "" });
-    setSending(false);
+    try {
+      // Dados do formulário para Web3Forms
+      const formData = new FormData();
+      formData.append("access_key", "SEU_ACCESS_KEY_WEB3FORMS"); // Substitua pela sua chave do Web3Forms
+      formData.append("name", form.name);
+      formData.append("email", form.email);
+      formData.append("phone", form.phone);
+      formData.append("message", form.message);
+      formData.append("subject", "Nova mensagem do site LMS Tech");
+      formData.append("from_name", "Site LMS Tech");
+
+      // Envia para Web3Forms (gratuito - configure no site para receber em contato@lmstech.com.br)
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
+        setForm({ name: "", email: "", phone: "", message: "" });
+      } else {
+        throw new Error(result.message || "Erro ao enviar mensagem");
+      }
+
+      // Salva localmente como backup
+      const messageData = {
+        nome: form.name,
+        email: form.email,
+        telefone: form.phone,
+        mensagem: form.message,
+        data: new Date().toISOString(),
+        enviado: result.success,
+      };
+
+      const messages = JSON.parse(localStorage.getItem("mensagens") || "[]");
+      messages.push(messageData);
+      localStorage.setItem("mensagens", JSON.stringify(messages));
+
+    } catch (error) {
+      console.error('Erro ao enviar email:', error);
+
+      // Mesmo com erro, salva localmente
+      const messageData = {
+        nome: form.name,
+        email: form.email,
+        telefone: form.phone,
+        mensagem: form.message,
+        data: new Date().toISOString(),
+        enviado: false,
+        error: error.message,
+      };
+
+      const messages = JSON.parse(localStorage.getItem("mensagens") || "[]");
+      messages.push(messageData);
+      localStorage.setItem("mensagens", JSON.stringify(messages));
+
+      toast.error("Erro ao enviar mensagem. Tente novamente ou entre em contato diretamente pelo WhatsApp.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

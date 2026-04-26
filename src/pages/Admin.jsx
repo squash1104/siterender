@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Monitor, Plus, Trash2, Edit2, Eye, EyeOff, Package, Briefcase, LogOut } from "lucide-react";
+import { Monitor, Plus, Trash2, Edit2, Eye, EyeOff, Package, Briefcase, LogOut, Mail, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +47,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("products");
   const [products, setProducts] = useState([]);
   const [portfolio, setPortfolio] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -82,8 +83,14 @@ export default function Admin() {
       setAuthenticated(true);
       loadProducts();
       loadPortfolio();
+      loadMessages();
     }
   }, []);
+
+  const loadMessages = () => {
+    const storedMessages = JSON.parse(localStorage.getItem("mensagens") || "[]");
+    setMessages(storedMessages);
+  };
 
   const loadProducts = async () => {
     try {
@@ -374,7 +381,7 @@ export default function Admin() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               Peças ({products.length})
@@ -382,6 +389,10 @@ export default function Admin() {
             <TabsTrigger value="portfolio" className="flex items-center gap-2">
               <Briefcase className="w-4 h-4" />
               Portfólio ({portfolio.length})
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Mensagens ({messages.length})
             </TabsTrigger>
           </TabsList>
 
@@ -612,6 +623,84 @@ export default function Admin() {
                         </div>
                       )}
                     </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="messages" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Mensagens de Contato</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Mensagens recebidas através do formulário de contato
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const csvContent = "data:text/csv;charset=utf-8,"
+                        + "Nome,Email,Telefone,Mensagem,Data,Enviado,Erro\n"
+                        + messages.map(m =>
+                            `"${m.nome}","${m.email}","${m.telefone}","${m.mensagem}","${m.data}","${m.enviado !== false ? 'Sim' : 'Não'}","${m.error || ''}"`
+                          ).join("\n");
+
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", encodedUri);
+                      link.setAttribute("download", "mensagens_contato.csv");
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                  >
+                    Exportar CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhuma mensagem recebida ainda.</p>
+                      <p className="text-sm">As mensagens aparecerão aqui quando os visitantes do site entrarem em contato.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {messages.slice().reverse().map((message, index) => (
+                        <Card key={index} className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-medium">{message.nome}</h3>
+                              <p className="text-sm text-muted-foreground">{message.email}</p>
+                              {message.telefone && (
+                                <p className="text-sm text-muted-foreground">{message.telefone}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <Badge variant={message.enviado !== false ? "default" : "destructive"}>
+                                {message.enviado !== false ? "Enviado" : "Local"}
+                              </Badge>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {new Date(message.data).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-sm bg-muted p-3 rounded-lg whitespace-pre-wrap">
+                            {message.mensagem}
+                          </p>
+                          {message.error && (
+                            <p className="text-xs text-red-500 mt-2">
+                              Erro: {message.error}
+                            </p>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
                   )}
                 </div>
               </CardContent>
