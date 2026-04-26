@@ -26,7 +26,7 @@ const contactInfo = [
   {
     icon: Clock,
     label: "Horário",
-    value: "Seg-Sex: 08h às 17h\nSáb e Dom: Plantão",
+    value: "Seg. à Sex.: 08h às 17h\nFim de semana: Plantão",
     href: null,
   },
 ];

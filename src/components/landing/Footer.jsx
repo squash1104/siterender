@@ -71,7 +71,7 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-2 text-sm text-background/60">
                 <Clock className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>Seg–Sex: 08h–17h<br/>Sáb e Dom: Plantão</span>
+                <span>Seg. à Sex.: 08h–17h<br/>Fim de semana: Plantão</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-background/60">
                 <MapPin className="w-4 h-4 text-primary" />
