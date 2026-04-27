@@ -81,6 +81,44 @@ Para personalizar o favicon do site, adicione os seguintes arquivos na pasta `pu
 - **Cores**: Use as cores da sua marca
 - **Simples**: Mantenha o design limpo e legível em tamanhos pequenos
 
+## Configuração do Banco de Dados
+
+O sistema suporta tanto SQLite (desenvolvimento) quanto PostgreSQL (produção).
+
+### Desenvolvimento (SQLite)
+```env
+DATABASE_URL=portfolio.db
+```
+- Mais simples e não requer instalação adicional
+- Arquivo local, não precisa de servidor
+- Ideal para desenvolvimento rápido
+
+### Produção (PostgreSQL)
+```env
+DATABASE_URL=postgresql://user:password@host:port/database
+```
+- Melhor performance para alta carga
+- Suporte a múltiplos usuários
+- Dados persistentes e seguros
+
+### Configuração PostgreSQL Local (Opcional)
+```bash
+# Instalar PostgreSQL
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+
+# Criar banco de dados
+sudo -u postgres createdb lmstech_db
+
+# Configurar usuário (opcional)
+sudo -u postgres psql
+CREATE USER lmstech_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE lmstech_db TO lmstech_user;
+
+# Atualizar .env
+DATABASE_URL=postgresql://lmstech_user:your_password@localhost:5432/lmstech_db
+```
+
 ## Funcionalidades
 
 ### Sistema de Peças
