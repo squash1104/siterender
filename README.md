@@ -58,7 +58,7 @@ VITE_API_URL=http://localhost:5000/api
 ```env
 NODE_ENV=development
 PORT=5000
-DATABASE_URL=./portfolio.db
+DATABASE_URL=postgresql://lmstech_user:lmstech123@localhost:5432/lmstech_db
 ```
 
 ### Favicon
@@ -83,41 +83,37 @@ Para personalizar o favicon do site, adicione os seguintes arquivos na pasta `pu
 
 ## Configuração do Banco de Dados
 
-O sistema suporta tanto SQLite (desenvolvimento) quanto PostgreSQL (produção).
+O sistema usa exclusivamente PostgreSQL para desenvolvimento e produção.
 
-### Desenvolvimento (SQLite)
+### Configuração
 ```env
-DATABASE_URL=portfolio.db
+DATABASE_URL=postgresql://lmstech_user:lmstech123@localhost:5432/lmstech_db
 ```
-- Mais simples e não requer instalação adicional
-- Arquivo local, não precisa de servidor
-- Ideal para desenvolvimento rápido
 
-### Produção (PostgreSQL)
-```env
-DATABASE_URL=postgresql://user:password@host:port/database
-```
-- Melhor performance para alta carga
-- Suporte a múltiplos usuários
-- Dados persistentes e seguros
-
-### Configuração PostgreSQL Local (Opcional)
+### Instalação e Configuração do PostgreSQL
 ```bash
 # Instalar PostgreSQL
 sudo apt update
 sudo apt install postgresql postgresql-contrib
 
+# Verificar status
+sudo service postgresql status
+
+# Criar usuário
+sudo -u postgres createuser -s lmstech_user
+
 # Criar banco de dados
 sudo -u postgres createdb lmstech_db
 
-# Configurar usuário (opcional)
-sudo -u postgres psql
-CREATE USER lmstech_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE lmstech_db TO lmstech_user;
+# Definir senha do usuário
+sudo -u postgres psql -c "ALTER USER lmstech_user PASSWORD 'lmstech123';"
 
-# Atualizar .env
-DATABASE_URL=postgresql://lmstech_user:your_password@localhost:5432/lmstech_db
+# Conceder permissões
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE lmstech_db TO lmstech_user;"
 ```
+
+### Produção (Render)
+O Render cria automaticamente o banco PostgreSQL gerenciado. A variável `DATABASE_URL` é configurada automaticamente.
 
 ## Funcionalidades
 

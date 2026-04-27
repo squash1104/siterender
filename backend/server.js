@@ -1,31 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { Pool } = require('pg');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Database configuration - Temporarily force SQLite for development
-let db;
-let dbType = 'sqlite'; // Force SQLite for now
+// Database configuration - PostgreSQL only
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : false
+});
 
-// TODO: Configure PostgreSQL properly for production
-// if (process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('render.com'))) {
-//   // Production: PostgreSQL
-//   const { Pool } = require('pg');
-//   db = new Pool({
-//     connectionString: process.env.DATABASE_URL,
-//     ssl: { rejectUnauthorized: false }
-//   });
-//   dbType = 'postgres';
-// } else {
-  // Development: SQLite (simpler for now)
-  const sqlite3 = require('sqlite3').verbose();
-  const { open } = require('sqlite');
-  db = null;
-  dbType = 'sqlite';
-  console.log('Usando SQLite para desenvolvimento...');
-// }
+console.log('Usando PostgreSQL...');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -80,33 +67,10 @@ const upload = multer({
 });
 
 // Initialize database connection
-let pool;
 async function initializeDatabaseConnection() {
-  if (dbType === 'postgres') {
-    // PostgreSQL connection
-    pool = db;
-    pool.on('error', (err) => {
-      console.error('Erro inesperado no pool PostgreSQL:', err);
-    });
-  } else {
-    // SQLite connection
-    const path = require('path');
-    const fs = require('fs');
-    const sqlite3 = require('sqlite3').verbose();
-    const { open } = require('sqlite');
-
-    // Ensure database directory exists
-    const dbPath = process.env.DATABASE_URL || 'portfolio.db';
-    const dbDir = path.dirname(dbPath);
-    if (dbDir !== '.' && !fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
-    }
-
-    pool = await open({
-      filename: dbPath,
-      driver: sqlite3.Database,
-    });
-  }
+  pool.on('error', (err) => {
+    console.error('Erro inesperado no pool PostgreSQL:', err);
+  });
 }
 
 app.listen(PORT, '0.0.0.0', async () => {
@@ -116,140 +80,72 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log('Servidor inicializado com sucesso!');
 });
 
-// Helper function to execute queries on both databases
+// PostgreSQL query helpers
 function executeQuery(query, params = []) {
-  if (dbType === 'postgres') {
-    return pool.query(query, params);
-  } else {
-    return pool.all(query, params);
-  }
+  return pool.query(query, params);
 }
 
-// Helper function to execute non-query commands
 function executeRun(query, params = []) {
-  if (dbType === 'postgres') {
-    return pool.query(query, params);
-  } else {
-    return pool.run(query, params);
-  }
+  return pool.query(query, params);
 }
 
 // Criar tabelas
 async function initializeDatabase() {
   try {
-    if (dbType === 'postgres') {
-      console.log('Usando PostgreSQL...');
+    console.log('Inicializando banco de dados PostgreSQL...');
 
-      // Dropar tabelas existentes
-      await pool.query('DROP TABLE IF EXISTS reviews CASCADE');
-      await pool.query('DROP TABLE IF EXISTS portfolio CASCADE');
-      await pool.query('DROP TABLE IF EXISTS products CASCADE');
+    // Dropar tabelas existentes (para recriar do zero)
+    await pool.query('DROP TABLE IF EXISTS reviews CASCADE');
+    await pool.query('DROP TABLE IF EXISTS portfolio CASCADE');
+    await pool.query('DROP TABLE IF EXISTS products CASCADE');
 
-      console.log('Tabelas antigas removidas.');
+    console.log('Tabelas antigas removidas.');
 
-      // Tabela de produtos
-      await pool.query(`
-        CREATE TABLE products (
-          id SERIAL PRIMARY KEY,
-          nome TEXT NOT NULL,
-          descricao TEXT,
-          categoria TEXT,
-          preco REAL,
-          link_compra TEXT,
-          imagem_url TEXT,
-          loja TEXT,
-          destaque BOOLEAN DEFAULT FALSE,
-          disponivel BOOLEAN DEFAULT TRUE,
-          clicks INTEGER DEFAULT 0,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
+    // Tabela de produtos
+    await pool.query(`
+      CREATE TABLE products (
+        id SERIAL PRIMARY KEY,
+        nome TEXT NOT NULL,
+        descricao TEXT,
+        categoria TEXT,
+        preco REAL,
+        link_compra TEXT,
+        imagem_url TEXT,
+        loja TEXT,
+        destaque BOOLEAN DEFAULT FALSE,
+        disponivel BOOLEAN DEFAULT TRUE,
+        clicks INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-      // Tabela de portfólio
-      await pool.query(`
-        CREATE TABLE portfolio (
-          id BIGSERIAL PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT,
-          technologies TEXT,
-          image TEXT,
-          images TEXT,
-          link TEXT,
-          version TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
+    // Tabela de portfólio
+    await pool.query(`
+      CREATE TABLE portfolio (
+        id BIGSERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        technologies TEXT,
+        image TEXT,
+        images TEXT,
+        link TEXT,
+        version TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-      // Tabela de avaliações
-      await pool.query(`
-        CREATE TABLE reviews (
-          id SERIAL PRIMARY KEY,
-          portfolio_id BIGINT REFERENCES portfolio(id) ON DELETE CASCADE,
-          username TEXT NOT NULL,
-          rating INTEGER NOT NULL,
-          comment TEXT NOT NULL,
-          helpful INTEGER DEFAULT 0,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-    } else {
-      console.log('Usando SQLite...');
-
-      // Dropar tabelas existentes
-      await pool.exec('DROP TABLE IF EXISTS reviews');
-      await pool.exec('DROP TABLE IF EXISTS portfolio');
-      await pool.exec('DROP TABLE IF EXISTS products');
-
-      console.log('Tabelas antigas removidas.');
-
-      // Tabela de produtos
-      await pool.exec(`
-        CREATE TABLE products (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          nome TEXT NOT NULL,
-          descricao TEXT,
-          categoria TEXT,
-          preco REAL,
-          link_compra TEXT,
-          imagem_url TEXT,
-          loja TEXT,
-          destaque INTEGER DEFAULT 0,
-          disponivel INTEGER DEFAULT 1,
-          clicks INTEGER DEFAULT 0,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      // Tabela de portfólio
-      await pool.exec(`
-        CREATE TABLE portfolio (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title TEXT NOT NULL,
-          description TEXT,
-          technologies TEXT,
-          image TEXT,
-          images TEXT,
-          link TEXT,
-          version TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      // Tabela de avaliações
-      await pool.exec(`
-        CREATE TABLE reviews (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          portfolio_id INTEGER,
-          username TEXT NOT NULL,
-          rating INTEGER NOT NULL,
-          comment TEXT NOT NULL,
-          helpful INTEGER DEFAULT 0,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (portfolio_id) REFERENCES portfolio(id) ON DELETE CASCADE
-        )
-      `);
-    }
+    // Tabela de avaliações
+    await pool.query(`
+      CREATE TABLE reviews (
+        id SERIAL PRIMARY KEY,
+        portfolio_id BIGINT REFERENCES portfolio(id) ON DELETE CASCADE,
+        username TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        comment TEXT NOT NULL,
+        helpful INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     console.log('Tabelas criadas com sucesso.');
   } catch (err) {
@@ -264,8 +160,7 @@ console.log('Registrando rotas da API...');
 app.get('/api/products', async (req, res) => {
   try {
     const result = await executeQuery('SELECT * FROM products ORDER BY created_at DESC');
-    const rows = dbType === 'postgres' ? result.rows : result;
-    res.json(rows);
+    res.json(result.rows);
   } catch (err) {
     console.error('Erro em GET /api/products:', err);
     res.status(500).json({ error: err.message });
@@ -275,14 +170,11 @@ app.get('/api/products', async (req, res) => {
 app.post('/api/products', async (req, res) => {
   const { nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks } = req.body;
   try {
-    const query = dbType === 'postgres'
-      ? 'INSERT INTO products (nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id'
-      : 'INSERT INTO products (nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-
-    const result = await executeRun(query, [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false ? (dbType === 'postgres' ? true : 1) : (dbType === 'postgres' ? false : 0), clicks || 0]);
-
-    const id = dbType === 'postgres' ? result.rows[0].id : result.lastID;
-    res.json({ id });
+    const result = await executeRun(
+      'INSERT INTO products (nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
+      [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false, clicks || 0]
+    );
+    res.json({ id: result.rows[0].id });
   } catch (err) {
     console.error('Erro em POST /api/products:', err);
     res.status(500).json({ error: err.message });
@@ -292,14 +184,11 @@ app.post('/api/products', async (req, res) => {
 app.put('/api/products/:id', async (req, res) => {
   const { nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks } = req.body;
   try {
-    const query = dbType === 'postgres'
-      ? 'UPDATE products SET nome = $1, descricao = $2, categoria = $3, preco = $4, link_compra = $5, imagem_url = $6, loja = $7, destaque = $8, disponivel = $9, clicks = $10 WHERE id = $11'
-      : 'UPDATE products SET nome = ?, descricao = ?, categoria = ?, preco = ?, link_compra = ?, imagem_url = ?, loja = ?, destaque = ?, disponivel = ?, clicks = ? WHERE id = ?';
-
-    const result = await executeRun(query, [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false ? (dbType === 'postgres' ? true : 1) : (dbType === 'postgres' ? false : 0), clicks || 0, req.params.id]);
-
-    const changes = dbType === 'postgres' ? result.rowCount : result.changes;
-    res.json({ changes });
+    const result = await executeRun(
+      'UPDATE products SET nome = $1, descricao = $2, categoria = $3, preco = $4, link_compra = $5, imagem_url = $6, loja = $7, destaque = $8, disponivel = $9, clicks = $10 WHERE id = $11',
+      [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false, clicks || 0, req.params.id]
+    );
+    res.json({ changes: result.rowCount });
   } catch (err) {
     console.error('Erro em PUT /api/products:', err);
     res.status(500).json({ error: err.message });
@@ -308,11 +197,8 @@ app.put('/api/products/:id', async (req, res) => {
 
 app.delete('/api/products/:id', async (req, res) => {
   try {
-    const query = dbType === 'postgres' ? 'DELETE FROM products WHERE id = $1' : 'DELETE FROM products WHERE id = ?';
-
-    const result = await executeRun(query, [req.params.id]);
-    const changes = dbType === 'postgres' ? result.rowCount : result.changes;
-    res.json({ changes });
+    const result = await executeRun('DELETE FROM products WHERE id = $1', [req.params.id]);
+    res.json({ changes: result.rowCount });
   } catch (err) {
     console.error('Erro em DELETE /api/products:', err);
     res.status(500).json({ error: err.message });
@@ -323,8 +209,7 @@ app.delete('/api/products/:id', async (req, res) => {
 app.get('/api/portfolio', async (req, res) => {
   try {
     const result = await executeQuery('SELECT * FROM portfolio ORDER BY created_at DESC');
-    const rows = dbType === 'postgres' ? result.rows : result;
-    res.json(rows);
+    res.json(result.rows);
   } catch (err) {
     console.error('Erro em GET /api/portfolio:', err);
     res.status(500).json({ error: err.message });
@@ -334,13 +219,11 @@ app.get('/api/portfolio', async (req, res) => {
 app.post('/api/portfolio', async (req, res) => {
   const { title, description, technologies, image, images, link, version } = req.body;
   try {
-    const query = dbType === 'postgres'
-      ? 'INSERT INTO portfolio (title, description, technologies, image, images, link, version) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id'
-      : 'INSERT INTO portfolio (title, description, technologies, image, images, link, version) VALUES (?, ?, ?, ?, ?, ?, ?)';
-
-    const result = await executeRun(query, [title, description, technologies, image, images, link, version]);
-    const id = dbType === 'postgres' ? result.rows[0].id : result.lastID;
-    res.json({ id });
+    const result = await executeRun(
+      'INSERT INTO portfolio (title, description, technologies, image, images, link, version) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      [title, description, technologies, image, images, link, version]
+    );
+    res.json({ id: result.rows[0].id });
   } catch (err) {
     console.error('Erro em POST /api/portfolio:', err);
     res.status(500).json({ error: err.message });
@@ -350,13 +233,11 @@ app.post('/api/portfolio', async (req, res) => {
 app.put('/api/portfolio/:id', async (req, res) => {
   const { title, description, technologies, image, images, link, version } = req.body;
   try {
-    const query = dbType === 'postgres'
-      ? 'UPDATE portfolio SET title = $1, description = $2, technologies = $3, image = $4, images = $5, link = $6, version = $7 WHERE id = $8'
-      : 'UPDATE portfolio SET title = ?, description = ?, technologies = ?, image = ?, images = ?, link = ?, version = ? WHERE id = ?';
-
-    const result = await executeRun(query, [title, description, technologies, image, images, link, version, req.params.id]);
-    const changes = dbType === 'postgres' ? result.rowCount : result.changes;
-    res.json({ changes });
+    const result = await executeRun(
+      'UPDATE portfolio SET title = $1, description = $2, technologies = $3, image = $4, images = $5, link = $6, version = $7 WHERE id = $8',
+      [title, description, technologies, image, images, link, version, req.params.id]
+    );
+    res.json({ changes: result.rowCount });
   } catch (err) {
     console.error('Erro em PUT /api/portfolio:', err);
     res.status(500).json({ error: err.message });
@@ -365,11 +246,8 @@ app.put('/api/portfolio/:id', async (req, res) => {
 
 app.delete('/api/portfolio/:id', async (req, res) => {
   try {
-    const query = dbType === 'postgres' ? 'DELETE FROM portfolio WHERE id = $1' : 'DELETE FROM portfolio WHERE id = ?';
-
-    const result = await executeRun(query, [req.params.id]);
-    const changes = dbType === 'postgres' ? result.rowCount : result.changes;
-    res.json({ changes });
+    const result = await executeRun('DELETE FROM portfolio WHERE id = $1', [req.params.id]);
+    res.json({ changes: result.rowCount });
   } catch (err) {
     console.error('Erro em DELETE /api/portfolio:', err);
     res.status(500).json({ error: err.message });
@@ -380,12 +258,9 @@ app.delete('/api/portfolio/:id', async (req, res) => {
 app.get('/api/reviews/:portfolioId', async (req, res) => {
   console.log('portfolio_id:', req.params.portfolioId);
   try {
-    const query = dbType === 'postgres' ? 'SELECT * FROM reviews WHERE portfolio_id = $1 ORDER BY created_at DESC' : 'SELECT * FROM reviews WHERE portfolio_id = ? ORDER BY created_at DESC';
-
-    const result = await executeQuery(query, [req.params.portfolioId]);
-    const rows = dbType === 'postgres' ? result.rows : result;
-    console.log('reviews result:', rows);
-    res.json(rows);
+    const result = await executeQuery('SELECT * FROM reviews WHERE portfolio_id = $1 ORDER BY created_at DESC', [req.params.portfolioId]);
+    console.log('reviews result:', result.rows);
+    res.json(result.rows);
   } catch (err) {
     console.error('Erro em reviews:', err);
     res.status(500).json({ error: err.message });
@@ -396,14 +271,12 @@ app.post('/api/reviews', async (req, res) => {
   console.log('>>> POST review body:', req.body);
   const { portfolio_id, username, rating, comment } = req.body;
   try {
-    const query = dbType === 'postgres'
-      ? 'INSERT INTO reviews (portfolio_id, username, rating, comment) VALUES ($1, $2, $3, $4) RETURNING id'
-      : 'INSERT INTO reviews (portfolio_id, username, rating, comment) VALUES (?, ?, ?, ?)';
-
-    const result = await executeRun(query, [portfolio_id, username, rating, comment]);
-    const id = dbType === 'postgres' ? result.rows[0].id : result.lastID;
-    console.log('>>> Review criado:', id);
-    res.json({ id });
+    const result = await executeRun(
+      'INSERT INTO reviews (portfolio_id, username, rating, comment) VALUES ($1, $2, $3, $4) RETURNING id',
+      [portfolio_id, username, rating, comment]
+    );
+    console.log('>>> Review criado:', result.rows[0].id);
+    res.json({ id: result.rows[0].id });
   } catch (err) {
     console.error('>>> ERRO ao criar review:', err.stack || err.message);
     res.status(500).json({ error: err.message });
@@ -412,11 +285,8 @@ app.post('/api/reviews', async (req, res) => {
 
 app.put('/api/reviews/:id/helpful', async (req, res) => {
   try {
-    const query = dbType === 'postgres' ? 'UPDATE reviews SET helpful = helpful + 1 WHERE id = $1' : 'UPDATE reviews SET helpful = helpful + 1 WHERE id = ?';
-
-    const result = await executeRun(query, [req.params.id]);
-    const changes = dbType === 'postgres' ? result.rowCount : result.changes;
-    res.json({ changes });
+    const result = await executeRun('UPDATE reviews SET helpful = helpful + 1 WHERE id = $1', [req.params.id]);
+    res.json({ changes: result.rowCount });
   } catch (err) {
     console.error('Erro em PUT /api/reviews/:id/helpful:', err);
     res.status(500).json({ error: err.message });
