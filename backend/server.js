@@ -480,7 +480,14 @@ app.post('/api/messages/:id/reply', async (req, res) => {
       }),
     });
 
-    const web3Data = await web3Response.json();
+    const responseText = await web3Response.text();
+    let web3Data;
+    try {
+      web3Data = JSON.parse(responseText);
+    } catch {
+      console.error('Web3forms returned non-JSON response:', responseText.substring(0, 200));
+      throw new Error('Erro no serviço de email (web3forms)');
+    }
     if (!web3Data.success) {
       throw new Error(web3Data.message || 'Erro ao enviar resposta');
     }
