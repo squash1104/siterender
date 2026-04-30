@@ -41,20 +41,29 @@ export default function ContactSection() {
     setSending(true);
 
     try {
-      // Dados do formulário para Web3Forms
+      // Dados do formulário
       const formData = new FormData();
-      formData.append("access_key", "SEU_ACCESS_KEY_WEB3FORMS"); // Substitua pela sua chave do Web3Forms
+      // Configure sua Access Key gratuita em https://web3forms.com
+      // Depois de criar sua conta, substitua pela sua chave
+      formData.append("access_key", "YOUR_WEB3FORMS_ACCESS_KEY");
       formData.append("name", form.name);
       formData.append("email", form.email);
       formData.append("phone", form.phone);
       formData.append("message", form.message);
       formData.append("subject", "Nova mensagem do site LMS Tech");
       formData.append("from_name", "Site LMS Tech");
+      formData.append("to_email", "contato@lmstech.com.br");
 
-      // Envia para Web3Forms (gratuito - configure no site para receber em contato@lmstech.com.br)
+      // Envia para Web3Forms (gratuito)
+      // IMPORTANTE: Acesse https://web3forms.com, crie uma conta gratuita,
+      // copie sua Access Key e substitua acima
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        body: formData
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(Object.fromEntries(formData))
       });
 
       const result = await response.json();
@@ -66,14 +75,13 @@ export default function ContactSection() {
         throw new Error(result.message || "Erro ao enviar mensagem");
       }
 
-      // Salva localmente como backup
+      // Salva localmente como backup (funciona mesmo sem a chave)
       const messageData = {
         nome: form.name,
         email: form.email,
         telefone: form.phone,
         mensagem: form.message,
         data: new Date().toISOString(),
-        enviado: result.success,
       };
 
       const messages = JSON.parse(localStorage.getItem("mensagens") || "[]");
@@ -83,7 +91,7 @@ export default function ContactSection() {
     } catch (error) {
       console.error('Erro ao enviar email:', error);
 
-      // Mesmo com erro, salva localmente
+      // Mesmo com erro, salva localmente como backup
       const messageData = {
         nome: form.name,
         email: form.email,
@@ -98,7 +106,7 @@ export default function ContactSection() {
       messages.push(messageData);
       localStorage.setItem("mensagens", JSON.stringify(messages));
 
-      toast.error("Erro ao enviar mensagem. Tente novamente ou entre em contato diretamente pelo WhatsApp.");
+      toast.error("Mensagem salva localmente. Configure a chave Web3Forms para envio por email.");
     } finally {
       setSending(false);
     }

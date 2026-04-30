@@ -1,4 +1,4 @@
-◇ injected env (1) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (1) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
 Usando PostgreSQL...
 Registrando rotas da API...
 Rotas registradas com sucesso!
@@ -12,15 +12,10 @@ Tabelas existentes: [ 'portfolio', 'products', 'reviews' ]
 ✅ Tabela reviews já existe
 ✅ Inicialização do banco de dados concluída
 📊 Estatísticas do banco:
-   - Produtos: 1
+   - Produtos: 2
    - Portfólio: 0
    - Reviews: 0
 Servidor inicializado com sucesso!
->>> POST /api/products - Dados recebidos: {
-  nome: 'Produto Teste',
-  categoria: 'Teste',
-  preco: 199.99,
-  loja: 'Teste Loja'
-}
->>> Produto criado com ID: 2
->>> Total de produtos no banco: 2
+>>> POST /api/products - Dados recebidos: { nome: 'Teste Contato', categoria: 'Contato', preco: 0, loja: 'Site' }
+>>> Produto criado com ID: 3
+>>> Total de produtos no banco: 3

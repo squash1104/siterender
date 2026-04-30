@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Monitor, Plus, Trash2, Edit2, Eye, EyeOff, Package, Briefcase, LogOut, Mail, MessageSquare } from "lucide-react";
+import { Monitor, Plus, Trash2, Edit2, Eye, EyeOff, Package, Briefcase, LogOut, Mail, MessageSquare, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,7 +89,15 @@ export default function Admin() {
 
   const loadMessages = () => {
     const storedMessages = JSON.parse(localStorage.getItem("mensagens") || "[]");
+    // Ordenar por data, mais recentes primeiro
+    storedMessages.sort((a, b) => new Date(b.data) - new Date(a.data));
     setMessages(storedMessages);
+  };
+
+  // Recarregar mensagens quando necessário
+  const refreshMessages = () => {
+    loadMessages();
+    toast.success("Mensagens atualizadas!");
   };
 
   const loadProducts = async () => {
@@ -629,7 +637,7 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="messages" className="space-y-6">
+            <TabsContent value="messages" className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -639,26 +647,37 @@ export default function Admin() {
                       Mensagens recebidas através do formulário de contato
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const csvContent = "data:text/csv;charset=utf-8,"
-                        + "Nome,Email,Telefone,Mensagem,Data,Enviado,Erro\n"
-                        + messages.map(m =>
-                            `"${m.nome}","${m.email}","${m.telefone}","${m.mensagem}","${m.data}","${m.enviado !== false ? 'Sim' : 'Não'}","${m.error || ''}"`
-                          ).join("\n");
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={refreshMessages}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Atualizar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const messages = JSON.parse(localStorage.getItem("mensagens") || "[]");
+                        const csvContent = "data:text/csv;charset=utf-8,"
+                          + "Nome,Email,Telefone,Mensagem,Data,Enviado,Erro\n"
+                          + messages.map(m =>
+                              `"${(m.nome || "").replace(/"/g, '""')}","${(m.email || "").replace(/"/g, '""')}","${(m.telefone || "").replace(/"/g, '""')}","${(m.mensagem || "").replace(/"/g, '""')}","${m.data}","${m.enviado !== false ? 'Sim' : 'Não'}","${(m.error || '').replace(/"/g, '""')}"`
+                            ).join("\n");
 
-                      const encodedUri = encodeURI(csvContent);
-                      const link = document.createElement("a");
-                      link.setAttribute("href", encodedUri);
-                      link.setAttribute("download", "mensagens_contato.csv");
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                  >
-                    Exportar CSV
-                  </Button>
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", "mensagens_contato.csv");
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      Exportar CSV
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
