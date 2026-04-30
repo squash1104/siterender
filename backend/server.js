@@ -26,10 +26,11 @@ const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: process.env.SMTP_SECURE === 'true',
-  auth: {
+  auth: process.env.SMTP_USER ? {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
-  },
+  } : undefined,
+  connectionTimeout: 10000,
 });
 
 // Middleware
@@ -469,6 +470,7 @@ app.get('/api/messages', async (req, res) => {
 });
 
 app.post('/api/messages/:id/reply', async (req, res) => {
+  console.log('>>> POST /api/messages/:id/reply received', req.params.id);
   const { reply } = req.body;
   try {
     const msgResult = await executeQuery('SELECT * FROM messages WHERE id = $1', [req.params.id]);
@@ -477,15 +479,18 @@ app.post('/api/messages/:id/reply', async (req, res) => {
     }
 
     const msg = msgResult.rows[0];
+    console.log('>>> SMTP configured:', !!(process.env.SMTP_USER && process.env.SMTP_PASS));
 
     const emailSent = process.env.SMTP_USER && process.env.SMTP_PASS;
     if (emailSent) {
+      console.log('>>> Sending email via SMTP...');
       await transporter.sendMail({
         from: `"LMS Tech" <${process.env.SMTP_USER}>`,
         to: msg.email,
         subject: `Re: ${msg.subject || 'Contato via Site LMS Tech'}`,
         html: `<p>Olá ${msg.name},</p><p>${reply}</p><p>--<br>LMS Tech</p>`,
       });
+      console.log('>>> Email sent successfully');
     } else {
       console.warn('SMTP not configured, skipping email send');
     }
