@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Monitor, Plus, Trash2, Edit2, Eye, EyeOff, Package, Briefcase, LogOut, Mail, MessageSquare, RefreshCw } from "lucide-react";
+import { Monitor, Plus, Trash2, Edit2, Eye, EyeOff, Package, Briefcase, LogOut, Mail, MessageSquare, RefreshCw, Reply, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 const categories = [
   "Memória RAM",
@@ -87,17 +88,61 @@ export default function Admin() {
     }
   }, []);
 
-  const loadMessages = () => {
-    const storedMessages = JSON.parse(localStorage.getItem("mensagens") || "[]");
-    // Ordenar por data, mais recentes primeiro
-    storedMessages.sort((a, b) => new Date(b.data) - new Date(a.data));
-    setMessages(storedMessages);
+  const [replyModalOpen, setReplyModalOpen] = useState(false);
+  const [replyMessageId, setReplyMessageId] = useState(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [replying, setReplying] = useState(false);
+
+  const loadMessages = async () => {
+    try {
+      const data = await api.getMessages();
+      setMessages(data);
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+    }
   };
 
-  // Recarregar mensagens quando necessário
-  const refreshMessages = () => {
-    loadMessages();
+  const refreshMessages = async () => {
+    await loadMessages();
     toast.success("Mensagens atualizadas!");
+  };
+
+  const openReplyModal = (message) => {
+    setReplyMessageId(message.id);
+    setReplyContent(`Olá ${message.name},\n\n`);
+    setReplyModalOpen(true);
+  };
+
+  const handleReply = async () => {
+    if (!replyContent.trim()) {
+      toast.error("Digite uma resposta");
+      return;
+    }
+    setReplying(true);
+    try {
+      await api.replyToMessage(replyMessageId, replyContent);
+      toast.success("Resposta enviada com sucesso!");
+      setReplyModalOpen(false);
+      setReplyContent("");
+      setReplyMessageId(null);
+      await loadMessages();
+    } catch (error) {
+      toast.error("Erro ao enviar resposta");
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  const handleDeleteMessage = async (id) => {
+    if (confirm("Tem certeza que deseja excluir esta mensagem?")) {
+      try {
+        await api.deleteMessage(id);
+        toast.success("Mensagem excluída");
+        await loadMessages();
+      } catch (error) {
+        toast.error("Erro ao excluir mensagem");
+      }
+    }
   };
 
   const loadProducts = async () => {
@@ -659,11 +704,10 @@ export default function Admin() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        const messages = JSON.parse(localStorage.getItem("mensagens") || "[]");
                         const csvContent = "data:text/csv;charset=utf-8,"
-                          + "Nome,Email,Telefone,Mensagem,Data,Enviado,Erro\n"
+                          + "Nome,Email,Telefone,Mensagem,Data,Respondido\n"
                           + messages.map(m =>
-                              `"${(m.nome || "").replace(/"/g, '""')}","${(m.email || "").replace(/"/g, '""')}","${(m.telefone || "").replace(/"/g, '""')}","${(m.mensagem || "").replace(/"/g, '""')}","${m.data}","${m.enviado !== false ? 'Sim' : 'Não'}","${(m.error || '').replace(/"/g, '""')}"`
+                              `"${(m.name || "").replace(/"/g, '""')}","${(m.email || "").replace(/"/g, '""')}","${(m.phone || "").replace(/"/g, '""')}","${(m.message || "").replace(/"/g, '""')}","${new Date(m.created_at).toLocaleString('pt-BR')}","${m.replied ? 'Sim' : 'Não'}"`
                             ).join("\n");
 
                         const encodedUri = encodeURI(csvContent);
@@ -690,33 +734,49 @@ export default function Admin() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {messages.slice().reverse().map((message, index) => (
-                        <Card key={index} className="p-4">
+                      {messages.map((message) => (
+                        <Card key={message.id} className="p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <h3 className="font-medium">{message.nome}</h3>
+                              <h3 className="font-medium">{message.name}</h3>
                               <p className="text-sm text-muted-foreground">{message.email}</p>
-                              {message.telefone && (
-                                <p className="text-sm text-muted-foreground">{message.telefone}</p>
+                              {message.phone && (
+                                <p className="text-sm text-muted-foreground">{message.phone}</p>
                               )}
                             </div>
-                            <div className="text-right">
-                              <Badge variant={message.enviado !== false ? "default" : "destructive"}>
-                                {message.enviado !== false ? "Enviado" : "Local"}
-                              </Badge>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(message.data).toLocaleString('pt-BR')}
+                            <div className="text-right flex flex-col items-end gap-1">
+                              <div className="flex gap-1">
+                                <Badge variant={message.replied ? "secondary" : "default"}>
+                                  {message.replied ? "Respondido" : "Pendente"}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(message.created_at).toLocaleString('pt-BR')}
                               </p>
                             </div>
                           </div>
                           <p className="text-sm bg-muted p-3 rounded-lg whitespace-pre-wrap">
-                            {message.mensagem}
+                            {message.message}
                           </p>
-                          {message.error && (
-                            <p className="text-xs text-red-500 mt-2">
-                              Erro: {message.error}
-                            </p>
+                          {message.replied && message.reply_content && (
+                            <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                              <p className="text-xs text-primary font-semibold mb-1">Sua resposta:</p>
+                              <p className="text-sm whitespace-pre-wrap">{message.reply_content}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Respondido em {new Date(message.replied_at).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
                           )}
+                          <div className="flex gap-2 mt-3">
+                            <Button size="sm" onClick={() => openReplyModal(message)}>
+                              <Reply className="w-4 h-4 mr-1" />
+                              Responder
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteMessage(message.id)}>
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Excluir
+                            </Button>
+                          </div>
                         </Card>
                       ))}
                     </div>
@@ -726,6 +786,38 @@ export default function Admin() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Reply Modal */}
+        {replyModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card rounded-xl border border-border w-full max-w-lg">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">Responder Mensagem</h2>
+                  <Button variant="ghost" size="sm" onClick={() => setReplyModalOpen(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Digite sua resposta..."
+                  rows={8}
+                  className="mb-4"
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleReply} className="flex-1" disabled={replying}>
+                    <Send className="w-4 h-4 mr-2" />
+                    {replying ? "Enviando..." : "Enviar Resposta"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setReplyModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Form Modal */}
         {showForm && (

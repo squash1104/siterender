@@ -179,6 +179,26 @@ async function initializeDatabase() {
       console.log('✅ Tabela reviews já existe');
     }
 
+    if (!existingTables.includes('messages')) {
+      console.log('Criando tabela messages...');
+      await pool.query(`
+        CREATE TABLE messages (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          phone TEXT,
+          message TEXT NOT NULL,
+          replied BOOLEAN DEFAULT FALSE,
+          reply_content TEXT,
+          replied_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ Tabela messages criada');
+    } else {
+      console.log('✅ Tabela messages já existe');
+    }
+
     console.log('✅ Inicialização do banco de dados concluída');
 
     // Mostrar estatísticas
@@ -385,6 +405,99 @@ app.post('/api/upload-multiple', (req, res) => {
 
     res.json({ imageUrls });
   });
+});
+
+// Mensagens de contato
+app.post('/api/messages', async (req, res) => {
+  const { name, email, phone, message } = req.body;
+  try {
+    const result = await executeRun(
+      'INSERT INTO messages (name, email, phone, message) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, email, phone, message]
+    );
+
+    try {
+      await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: 'ace396cd-0370-40f7-afd8-70e3cbfda193',
+          name,
+          email,
+          phone,
+          message,
+          subject: `Novo contato de ${name} - Site LMS Tech`,
+        }),
+      });
+    } catch (web3err) {
+      console.error('Erro ao enviar para Web3Forms:', web3err.message);
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Erro em POST /api/messages:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/messages', async (req, res) => {
+  try {
+    const result = await executeQuery('SELECT * FROM messages ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro em GET /api/messages:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/messages/:id/reply', async (req, res) => {
+  const { reply } = req.body;
+  try {
+    const msgResult = await executeQuery('SELECT * FROM messages WHERE id = $1', [req.params.id]);
+    if (msgResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Mensagem não encontrada' });
+    }
+
+    const msg = msgResult.rows[0];
+
+    const web3Response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        access_key: 'ace396cd-0370-40f7-afd8-70e3cbfda193',
+        name: 'LMS Tech',
+        email: msg.email,
+        from_name: 'LMS Tech - Resposta via Admin',
+        message: reply,
+        subject: `Re: ${msg.subject || 'Contato via Site LMS Tech'}`,
+      }),
+    });
+
+    const web3Data = await web3Response.json();
+    if (!web3Data.success) {
+      throw new Error(web3Data.message || 'Erro ao enviar resposta');
+    }
+
+    await executeRun(
+      'UPDATE messages SET replied = TRUE, reply_content = $1, replied_at = NOW() WHERE id = $2',
+      [reply, req.params.id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro em POST /api/messages/:id/reply:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/messages/:id', async (req, res) => {
+  try {
+    const result = await executeRun('DELETE FROM messages WHERE id = $1', [req.params.id]);
+    res.json({ changes: result.rowCount });
+  } catch (err) {
+    console.error('Erro em DELETE /api/messages:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Iniciar servidor

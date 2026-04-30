@@ -6,11 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Phone, Mail, MapPin, Send, MessageCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
-
-// Configure seu email em https://web3forms.com (GRÁTIS)
-// Crie uma conta gratuita e substitua a access_key abaixo
-// Você pode configurar para receber emails em contato@lmstech.com.br e lucianolrv@gmail.com
-
+import { api } from "@/lib/api";
 const contactInfo = [
   {
     icon: Phone,
@@ -27,91 +23,31 @@ const contactInfo = [
   {
     icon: Clock,
     label: "Horário",
-    value: "Seg-Sex: 08h às 17h\nFim de semana: Plantão",
+    value: "Seg-Sex: 08h às 17h",
     href: null,
   },
 ];
-
 export default function ContactSection() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [sending, setSending] = useState(false);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSending(true);
-
     try {
-      // Dados do formulário
-      const formData = new FormData();
-      // Configure sua Access Key gratuita em https://web3forms.com
-      // Depois de criar sua conta, substitua pela sua chave
-      formData.append("access_key", "YOUR_WEB3FORMS_ACCESS_KEY");
-      formData.append("name", form.name);
-      formData.append("email", form.email);
-      formData.append("phone", form.phone);
-      formData.append("message", form.message);
-      formData.append("subject", "Nova mensagem do site LMS Tech");
-      formData.append("from_name", "Site LMS Tech");
-      formData.append("to_email", "contato@lmstech.com.br");
-
-      // Envia para Web3Forms (gratuito)
-      // IMPORTANTE: Acesse https://web3forms.com, crie uma conta gratuita,
-      // copie sua Access Key e substitua acima
-      const response = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(Object.fromEntries(formData))
+      await api.createMessage({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        message: form.message,
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
-        setForm({ name: "", email: "", phone: "", message: "" });
-      } else {
-        throw new Error(result.message || "Erro ao enviar mensagem");
-      }
-
-      // Salva localmente como backup (funciona mesmo sem a chave)
-      const messageData = {
-        nome: form.name,
-        email: form.email,
-        telefone: form.phone,
-        mensagem: form.message,
-        data: new Date().toISOString(),
-      };
-
-      const messages = JSON.parse(localStorage.getItem("mensagens") || "[]");
-      messages.push(messageData);
-      localStorage.setItem("mensagens", JSON.stringify(messages));
-
+      toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
+      setForm({ name: "", email: "", phone: "", message: "" });
     } catch (error) {
-      console.error('Erro ao enviar email:', error);
-
-      // Mesmo com erro, salva localmente como backup
-      const messageData = {
-        nome: form.name,
-        email: form.email,
-        telefone: form.phone,
-        mensagem: form.message,
-        data: new Date().toISOString(),
-        enviado: false,
-        error: error.message,
-      };
-
-      const messages = JSON.parse(localStorage.getItem("mensagens") || "[]");
-      messages.push(messageData);
-      localStorage.setItem("mensagens", JSON.stringify(messages));
-
-      toast.error("Mensagem salva localmente. Configure a chave Web3Forms para envio por email.");
+      toast.error("Erro ao enviar mensagem. Tente novamente ou entre em contato pelo WhatsApp.");
     } finally {
       setSending(false);
     }
   };
-
   return (
     <section id="contato" className="py-24 md:py-32 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -132,7 +68,6 @@ export default function ContactSection() {
             Solicite um orçamento ou tire suas dúvidas. Respondemos rapidamente!
           </p>
         </motion.div>
-
         <div className="grid lg:grid-cols-5 gap-12">
           {/* Contact Info */}
           <motion.div
@@ -167,9 +102,8 @@ export default function ContactSection() {
                 </div>
               </div>
             ))}
-
             <a
-              href="https://wa.me/5565920012031"
+              href="https://wa.me/5565999616000"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
@@ -178,7 +112,6 @@ export default function ContactSection() {
               Chamar no WhatsApp
             </a>
           </motion.div>
-
           {/* Form */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}

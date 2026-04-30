@@ -85,8 +85,22 @@ export const api = {
     files.forEach(file => formData.append('images', file));
     return apiRequest('/upload-multiple', {
       method: 'POST',
-      headers: {}, // Remove Content-Type para multipart/form-data
+      headers: {},
       body: formData
     });
-  }
+  },
+
+  // Messages
+  createMessage: (message) => apiRequest('/messages', {
+    method: 'POST',
+    body: JSON.stringify(message)
+  }),
+  getMessages: () => apiRequest('/messages'),
+  replyToMessage: (id, reply) => apiRequest(`/messages/${id}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ reply })
+  }),
+  deleteMessage: (id) => apiRequest(`/messages/${id}`, {
+    method: 'DELETE'
+  })
 };
