@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
-const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
 
@@ -22,19 +21,23 @@ console.log('Usando PostgreSQL...');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true,
-  auth: process.env.SMTP_USER ? {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  } : undefined,
-  connectionTimeout: 15000,
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+const transporter = process.env.RESEND_API_KEY
+  ? {
+      send: async ({ from, to, subject, html }) => {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({ from, to, subject, html }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to send email');
+        return data;
+      },
+    }
+  : null;
 
 // Middleware
 app.use(cors({
@@ -237,19 +240,27 @@ async function initializeDatabase() {
     }
 
     // Create message_replies table
-    if (!existingTables.includes('message_replies')) {
-      console.log('Criando tabela message_replies...');
-      await pool.query(`
-        CREATE TABLE message_replies (
-          id SERIAL PRIMARY KEY,
-          message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
-          reply_content TEXT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
+    try {
+      const hasRepliesTable = await pool.query(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'message_replies' AND column_name = 'id'
       `);
-      console.log('✅ Tabela message_replies criada');
-    } else {
-      console.log('✅ Tabela message_replies já existe');
+      if (hasRepliesTable.rows.length === 0) {
+        console.log('Criando tabela message_replies...');
+        await pool.query(`
+          CREATE TABLE message_replies (
+            id SERIAL PRIMARY KEY,
+            message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
+            reply_content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        console.log('✅ Tabela message_replies criada');
+      } else {
+        console.log('✅ Tabela message_replies já existe');
+      }
+    } catch (err) {
+      console.log('Erro ao verificar tabela message_replies:', err.message);
     }
 
     console.log('✅ Inicialização do banco de dados concluída');
@@ -498,23 +509,21 @@ app.post('/api/messages/:id/reply', async (req, res) => {
     const msg = msgResult.rows[0];
     console.log('>>> SMTP configured:', !!(process.env.SMTP_USER && process.env.SMTP_PASS));
 
-    const emailSent = process.env.SMTP_USER && process.env.SMTP_PASS;
-    if (emailSent) {
+    if (transporter) {
       try {
-        console.log('>>> Sending email via SMTP to:', msg.email);
-        console.log('>>> SMTP config:', process.env.SMTP_HOST, process.env.SMTP_PORT);
-        const info = await transporter.sendMail({
-          from: `"LMS Tech" <${process.env.SMTP_USER}>`,
+        console.log('>>> Sending email via Resend to:', msg.email);
+        const info = await transporter.send({
+          from: 'LMS Tech <onboarding@resend.dev>',
           to: msg.email,
           subject: `Re: ${msg.subject || 'Contato via Site LMS Tech'}`,
           html: `<p>Olá ${msg.name},</p><p>${reply}</p><p>--<br>LMS Tech</p>`,
         });
-        console.log('>>> Email sent successfully, messageId:', info.messageId);
+        console.log('>>> Email sent successfully, id:', info.id);
       } catch (emailErr) {
         console.error('>>> Failed to send email (non-fatal):', emailErr.message);
       }
     } else {
-      console.warn('SMTP not configured, skipping email send');
+      console.warn('Resend API not configured (set RESEND_API_KEY), skipping email send');
     }
 
     await executeRun(
