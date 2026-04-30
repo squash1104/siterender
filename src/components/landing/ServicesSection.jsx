@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Monitor, Wifi, Users, Truck, ArrowRight, Cpu, Code, X, ExternalLink } from "lucide-react";
@@ -64,31 +64,7 @@ const services = [
 ];
 
 export default function ServicesSection() {
-  const [portfolioProjects, setPortfolioProjects] = useState([
-    {
-        id: 1,
-        title: "DriverControl - Controle de Corridas",
-        description: "Sistema completo para motoristas de Uber e 99 controlarem corridas, receitas e despesas. Cadastre corridas com cálculos automáticos de R$/Km e R$/Hora, controle gastos por veículo, abastecimentos e recompensas dos apps. Dashboard intuitivo com relatórios por período.",
-        technologies: ["Django", "Python", "Bootstrap", "SQLite"],
-        image: "/banerDC.png",
-        images: ["/DriverControl.png"],
-        link: "/portfolio/1",
-        createdAt: "2024-01-15",
-        version: "1.0.0",
-    },
-  ]);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("portfolio");
-      if (stored) {
-        setPortfolioProjects(JSON.parse(stored));
-      }
-    } catch {
-      // Keep default
-    }
-  }, []);
-  const [portfolioOpen, setPortfolioOpen] = useState(false);
+  const [portfolioOpen, setPortfolioOpen] = React.useState(false);
 
   return (
     <section id="servicos" className="py-24 md:py-32 bg-background">
@@ -155,10 +131,12 @@ export default function ServicesSection() {
                   {service.title === "Desenvolvimento de Sites e Apps" && (
                     <Button
                       size="sm"
-                      onClick={() => setPortfolioOpen(true)}
+                      asChild
                       className="w-full"
                     >
-                      Ver Portfólio
+                      <Link to="/portfolio">
+                        Ver Portfólio
+                      </Link>
                     </Button>
                   )}
                 </div>
@@ -167,54 +145,7 @@ export default function ServicesSection() {
           })}
         </div>
 
-        {/* Portfolio Modal */}
-        <Dialog open={portfolioOpen} onOpenChange={setPortfolioOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Code className="w-5 h-5" />
-                Nosso Portfólio de Desenvolvimento
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                Conheça nossos projetos desenvolvidos com as melhores tecnologias.
-              </p>
-            </DialogHeader>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {portfolioProjects.map((project, index) => (
-                <motion.div
-                  key={project.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-card rounded-lg border border-border overflow-hidden"
-                >
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    className="w-full h-32 object-contain bg-muted"
-                  />
-                  <div className="p-4">
-                    <h3 className="font-semibold text-sm mb-2">{project.title}</h3>
-                    <p className="text-xs text-muted-foreground mb-3">{project.description}</p>
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {project.technologies.map((tech) => (
-                        <span key={tech} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                    <Button size="sm" variant="outline" className="w-full gap-1" asChild>
-                      <Link to={`/portfolio/${project.id}`}>
-                        <ExternalLink className="w-3 h-3" />
-                        Ver Projeto
-                      </Link>
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Modal de Portfólio Removido - Agora é página separada */}
       </div>
     </section>
   );
