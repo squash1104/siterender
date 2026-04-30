@@ -28,7 +28,7 @@ const contactInfo = [
   },
 ];
 export default function ContactSection() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
   const [sending, setSending] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,10 +38,11 @@ export default function ContactSection() {
         name: form.name,
         email: form.email,
         phone: form.phone,
+        subject: form.subject,
         message: form.message,
       });
       toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
-      setForm({ name: "", email: "", phone: "", message: "" });
+      setForm({ name: "", email: "", phone: "", subject: "", message: "" });
     } catch (error) {
       toast.error("Erro ao enviar mensagem. Tente novamente ou entre em contato pelo WhatsApp.");
     } finally {
@@ -154,6 +155,16 @@ export default function ContactSection() {
                   placeholder="(XX) XXXXX-XXXX"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="subject">Assunto</Label>
+                <Input
+                  id="subject"
+                  placeholder="Sobre o que deseja falar?"
+                  value={form.subject}
+                  onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">

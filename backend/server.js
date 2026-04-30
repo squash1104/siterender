@@ -206,6 +206,7 @@ async function initializeDatabase() {
           name TEXT NOT NULL,
           email TEXT NOT NULL,
           phone TEXT,
+          subject TEXT DEFAULT 'Sem assunto',
           message TEXT NOT NULL,
           replied BOOLEAN DEFAULT FALSE,
           reply_content TEXT,
@@ -216,6 +217,36 @@ async function initializeDatabase() {
       console.log('✅ Tabela messages criada');
     } else {
       console.log('✅ Tabela messages já existe');
+    }
+
+    // Add subject column if not exists
+    try {
+      const hasSubject = await pool.query(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'messages' AND column_name = 'subject'
+      `);
+      if (hasSubject.rows.length === 0) {
+        await pool.query(`ALTER TABLE messages ADD COLUMN subject TEXT DEFAULT 'Sem assunto'`);
+        console.log('✅ Coluna subject adicionada à tabela messages');
+      }
+    } catch (err) {
+      console.log('Erro ao adicionar coluna subject:', err.message);
+    }
+
+    // Create message_replies table
+    if (!existingTables.includes('message_replies')) {
+      console.log('Criando tabela message_replies...');
+      await pool.query(`
+        CREATE TABLE message_replies (
+          id SERIAL PRIMARY KEY,
+          message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
+          reply_content TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ Tabela message_replies criada');
+    } else {
+      console.log('✅ Tabela message_replies já existe');
     }
 
     console.log('✅ Inicialização do banco de dados concluída');
@@ -428,29 +459,12 @@ app.post('/api/upload-multiple', (req, res) => {
 
 // Mensagens de contato
 app.post('/api/messages', async (req, res) => {
-  const { name, email, phone, message } = req.body;
+  const { name, email, phone, subject, message } = req.body;
   try {
     const result = await executeRun(
-      'INSERT INTO messages (name, email, phone, message) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, email, phone, message]
+      'INSERT INTO messages (name, email, phone, subject, message) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, email, phone, subject || 'Sem assunto', message]
     );
-
-    try {
-      await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          access_key: 'ace396cd-0370-40f7-afd8-70e3cbfda193',
-          name,
-          email,
-          phone,
-          message,
-          subject: `Novo contato de ${name} - Site LMS Tech`,
-        }),
-      });
-    } catch (web3err) {
-      console.error('Erro ao enviar para Web3Forms:', web3err.message);
-    }
 
     res.json(result.rows[0]);
   } catch (err) {
@@ -500,13 +514,31 @@ app.post('/api/messages/:id/reply', async (req, res) => {
     }
 
     await executeRun(
-      'UPDATE messages SET replied = TRUE, reply_content = $1, replied_at = NOW() WHERE id = $2',
-      [reply, req.params.id]
+      'UPDATE messages SET replied = TRUE, replied_at = NOW() WHERE id = $1',
+      [req.params.id]
+    );
+
+    await executeRun(
+      'INSERT INTO message_replies (message_id, reply_content) VALUES ($1, $2)',
+      [req.params.id, reply]
     );
 
     res.json({ success: true });
   } catch (err) {
     console.error('Erro em POST /api/messages/:id/reply:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/messages/:id/replies', async (req, res) => {
+  try {
+    const result = await executeQuery(
+      'SELECT * FROM message_replies WHERE message_id = $1 ORDER BY created_at ASC',
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro em GET /api/messages/:id/replies:', err);
     res.status(500).json({ error: err.message });
   }
 });

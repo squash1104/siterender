@@ -90,8 +90,12 @@ export default function Admin() {
 
   const [replyModalOpen, setReplyModalOpen] = useState(false);
   const [replyMessageId, setReplyMessageId] = useState(null);
+  const [replyMessage, setReplyMessage] = useState(null);
   const [replyContent, setReplyContent] = useState("");
   const [replying, setReplying] = useState(false);
+  const [messageReplies, setMessageReplies] = useState([]);
+  const [expandedMessageId, setExpandedMessageId] = useState(null);
+  const [inlineReplies, setInlineReplies] = useState({});
 
   const loadMessages = async () => {
     try {
@@ -102,15 +106,42 @@ export default function Admin() {
     }
   };
 
+  const loadReplies = async (messageId) => {
+    try {
+      const data = await api.getMessageReplies(messageId);
+      setMessageReplies(data);
+    } catch (error) {
+      console.error('Erro ao carregar respostas:', error);
+    }
+  };
+
+  const toggleMessageReplies = async (messageId) => {
+    if (expandedMessageId === messageId) {
+      setExpandedMessageId(null);
+    } else {
+      setExpandedMessageId(messageId);
+      if (!inlineReplies[messageId]) {
+        try {
+          const data = await api.getMessageReplies(messageId);
+          setInlineReplies(prev => ({ ...prev, [messageId]: data }));
+        } catch (error) {
+          console.error('Erro ao carregar respostas:', error);
+        }
+      }
+    }
+  };
+
   const refreshMessages = async () => {
     await loadMessages();
     toast.success("Mensagens atualizadas!");
   };
 
-  const openReplyModal = (message) => {
+  const openReplyModal = async (message) => {
+    setReplyMessage(message);
     setReplyMessageId(message.id);
     setReplyContent(`Olá ${message.name},\n\n`);
     setReplyModalOpen(true);
+    await loadReplies(message.id);
   };
 
   const handleReply = async () => {
@@ -122,10 +153,9 @@ export default function Admin() {
     try {
       await api.replyToMessage(replyMessageId, replyContent);
       toast.success("Resposta enviada com sucesso!");
-      setReplyModalOpen(false);
       setReplyContent("");
-      setReplyMessageId(null);
       await loadMessages();
+      await loadReplies(replyMessageId);
     } catch (error) {
       toast.error("Erro ao enviar resposta");
     } finally {
@@ -734,7 +764,7 @@ export default function Admin() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {messages.map((message) => (
+                       {messages.map((message) => (
                         <Card key={message.id} className="p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div>
@@ -742,6 +772,9 @@ export default function Admin() {
                               <p className="text-sm text-muted-foreground">{message.email}</p>
                               {message.phone && (
                                 <p className="text-sm text-muted-foreground">{message.phone}</p>
+                              )}
+                              {message.subject && message.subject !== 'Sem assunto' && (
+                                <p className="text-sm font-medium text-primary mt-1">📌 {message.subject}</p>
                               )}
                             </div>
                             <div className="text-right flex flex-col items-end gap-1">
@@ -758,13 +791,28 @@ export default function Admin() {
                           <p className="text-sm bg-muted p-3 rounded-lg whitespace-pre-wrap">
                             {message.message}
                           </p>
-                          {message.replied && message.reply_content && (
-                            <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                              <p className="text-xs text-primary font-semibold mb-1">Sua resposta:</p>
-                              <p className="text-sm whitespace-pre-wrap">{message.reply_content}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Respondido em {new Date(message.replied_at).toLocaleString('pt-BR')}
-                              </p>
+                          {message.replied && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => toggleMessageReplies(message.id)}
+                                className="text-xs text-primary hover:underline font-medium flex items-center gap-1"
+                              >
+                                {expandedMessageId === message.id ? '▾' : '▸'}
+                                Ver histórico de respostas ({inlineReplies[message.id]?.length || '...'})
+                              </button>
+                              {expandedMessageId === message.id && inlineReplies[message.id] && (
+                                <div className="mt-2 space-y-2">
+                                  {inlineReplies[message.id].map((reply, idx) => (
+                                    <div key={reply.id} className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                                      <p className="text-xs text-primary font-semibold mb-1">Resposta #{idx + 1}:</p>
+                                      <p className="text-sm whitespace-pre-wrap">{reply.reply_content}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {new Date(reply.created_at).toLocaleString('pt-BR')}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                           <div className="flex gap-2 mt-3">
@@ -790,7 +838,7 @@ export default function Admin() {
         {/* Reply Modal */}
         {replyModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card rounded-xl border border-border w-full max-w-lg">
+            <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold">Responder Mensagem</h2>
@@ -798,11 +846,36 @@ export default function Admin() {
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
+                {replyMessage && (
+                  <div className="mb-4 p-3 rounded-lg bg-muted text-sm">
+                    <p className="font-medium">{replyMessage.name} ({replyMessage.email})</p>
+                    {replyMessage.subject && replyMessage.subject !== 'Sem assunto' && (
+                      <p className="text-primary font-medium">📌 {replyMessage.subject}</p>
+                    )}
+                    <p className="text-muted-foreground mt-1">{replyMessage.message}</p>
+                  </div>
+                )}
+                {messageReplies.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Histórico de respostas:</p>
+                    <div className="space-y-2">
+                      {messageReplies.map((reply, idx) => (
+                        <div key={reply.id} className="p-2 rounded bg-primary/5 border border-primary/10 text-sm">
+                          <p className="text-xs text-primary font-medium">Resposta #{idx + 1}</p>
+                          <p className="whitespace-pre-wrap">{reply.reply_content}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(reply.created_at).toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <Textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder="Digite sua resposta..."
-                  rows={8}
+                  rows={6}
                   className="mb-4"
                 />
                 <div className="flex gap-2">

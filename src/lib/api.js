@@ -100,6 +100,7 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ reply })
   }),
+  getMessageReplies: (id) => apiRequest(`/messages/${id}/replies`),
   deleteMessage: (id) => apiRequest(`/messages/${id}`, {
     method: 'DELETE'
   })
