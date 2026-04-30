@@ -24,13 +24,16 @@ const PORT = process.env.PORT || 5000;
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
+  port: parseInt(process.env.SMTP_PORT || '465'),
+  secure: true,
   auth: process.env.SMTP_USER ? {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   } : undefined,
-  connectionTimeout: 10000,
+  connectionTimeout: 15000,
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
 // Middleware
@@ -498,14 +501,15 @@ app.post('/api/messages/:id/reply', async (req, res) => {
     const emailSent = process.env.SMTP_USER && process.env.SMTP_PASS;
     if (emailSent) {
       try {
-        console.log('>>> Sending email via SMTP...');
-        await transporter.sendMail({
+        console.log('>>> Sending email via SMTP to:', msg.email);
+        console.log('>>> SMTP config:', process.env.SMTP_HOST, process.env.SMTP_PORT);
+        const info = await transporter.sendMail({
           from: `"LMS Tech" <${process.env.SMTP_USER}>`,
           to: msg.email,
           subject: `Re: ${msg.subject || 'Contato via Site LMS Tech'}`,
           html: `<p>Olá ${msg.name},</p><p>${reply}</p><p>--<br>LMS Tech</p>`,
         });
-        console.log('>>> Email sent successfully');
+        console.log('>>> Email sent successfully, messageId:', info.messageId);
       } catch (emailErr) {
         console.error('>>> Failed to send email (non-fatal):', emailErr.message);
       }
