@@ -1,10 +1,26 @@
-◇ injected env (1) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (1) from .env // tip: ⌘ suppress logs { quiet: true }
 Usando PostgreSQL...
 Registrando rotas da API...
 Rotas registradas com sucesso!
 Servidor rodando na porta 5000
 Servidor rodando na porta 5000
-Inicializando banco de dados PostgreSQL...
-Tabelas antigas removidas.
-Tabelas criadas com sucesso.
+✅ Conexão com PostgreSQL estabelecida
+Verificando tabelas do banco de dados...
+Tabelas existentes: [ 'portfolio', 'products', 'reviews' ]
+✅ Tabela products já existe
+✅ Tabela portfolio já existe
+✅ Tabela reviews já existe
+✅ Inicialização do banco de dados concluída
+📊 Estatísticas do banco:
+   - Produtos: 1
+   - Portfólio: 0
+   - Reviews: 0
 Servidor inicializado com sucesso!
+>>> POST /api/products - Dados recebidos: {
+  nome: 'Produto Teste',
+  categoria: 'Teste',
+  preco: 199.99,
+  loja: 'Teste Loja'
+}
+>>> Produto criado com ID: 2
+>>> Total de produtos no banco: 2
