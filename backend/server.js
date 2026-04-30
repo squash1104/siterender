@@ -21,23 +21,26 @@ console.log('Usando PostgreSQL...');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const transporter = process.env.RESEND_API_KEY
-  ? {
-      send: async ({ from, to, subject, html }) => {
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          },
-          body: JSON.stringify({ from, to, subject, html }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to send email');
-        return data;
-      },
-    }
-  : null;
+const RESEND_FROM = process.env.RESEND_FROM || process.env.SMTP_USER || 'onboarding@resend.dev';
+const RESEND_TO_ADMIN = process.env.RESEND_TO_ADMIN || process.env.SMTP_USER || null;
+
+async function sendEmail({ from, to, subject, html }) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured, skipping email');
+    return null;
+  }
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+    },
+    body: JSON.stringify({ from: from || RESEND_FROM, to, subject, html }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to send email');
+  return data;
+}
 
 // Middleware
 app.use(cors({
@@ -480,6 +483,29 @@ app.post('/api/messages', async (req, res) => {
       [name, email, phone, subject || 'Sem assunto', message]
     );
 
+    // Notificar admin por email
+    if (RESEND_TO_ADMIN) {
+      try {
+        await sendEmail({
+          subject: `📩 Nova mensagem: ${subject || 'Sem assunto'}`,
+          to: RESEND_TO_ADMIN,
+          html: `
+            <h2>Nova mensagem de contato</h2>
+            <p><strong>Nome:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Telefone:</strong> ${phone || 'Não informado'}</p>
+            <p><strong>Assunto:</strong> ${subject || 'Sem assunto'}</p>
+            <p><strong>Mensagem:</strong></p>
+            <blockquote style="border-left:3px solid #ccc;padding-left:12px">${message}</blockquote>
+            <p><small>Responda pelo painel admin.</small></p>
+          `,
+        });
+        console.log('>>> Notificação enviada ao admin');
+      } catch (err) {
+        console.warn('>>> Falha ao enviar notificação:', err.message);
+      }
+    }
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Erro em POST /api/messages:', err);
@@ -507,23 +533,22 @@ app.post('/api/messages/:id/reply', async (req, res) => {
     }
 
     const msg = msgResult.rows[0];
-    console.log('>>> SMTP configured:', !!(process.env.SMTP_USER && process.env.SMTP_PASS));
 
-    if (transporter) {
+    if (process.env.RESEND_API_KEY) {
       try {
-        console.log('>>> Sending email via Resend to:', msg.email);
-        const info = await transporter.send({
-          from: 'LMS Tech <onboarding@resend.dev>',
+        console.log('>>> Sending reply email to:', msg.email);
+        const info = await sendEmail({
+          from: `LMS Tech <${RESEND_FROM}>`,
           to: msg.email,
           subject: `Re: ${msg.subject || 'Contato via Site LMS Tech'}`,
           html: `<p>Olá ${msg.name},</p><p>${reply}</p><p>--<br>LMS Tech</p>`,
         });
-        console.log('>>> Email sent successfully, id:', info.id);
+        console.log('>>> Reply email sent, id:', info.id);
       } catch (emailErr) {
-        console.error('>>> Failed to send email (non-fatal):', emailErr.message);
+        console.error('>>> Failed to send reply (non-fatal):', emailErr.message);
       }
     } else {
-      console.warn('Resend API not configured (set RESEND_API_KEY), skipping email send');
+      console.warn('Resend API not configured');
     }
 
     await executeRun(
