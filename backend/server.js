@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
 
@@ -20,6 +21,16 @@ console.log('Usando PostgreSQL...');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 // Middleware
 app.use(cors({
@@ -467,29 +478,16 @@ app.post('/api/messages/:id/reply', async (req, res) => {
 
     const msg = msgResult.rows[0];
 
-    const web3Response = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        access_key: 'ace396cd-0370-40f7-afd8-70e3cbfda193',
-        name: 'LMS Tech',
-        email: msg.email,
-        from_name: 'LMS Tech - Resposta via Admin',
-        message: reply,
+    const emailSent = process.env.SMTP_USER && process.env.SMTP_PASS;
+    if (emailSent) {
+      await transporter.sendMail({
+        from: `"LMS Tech" <${process.env.SMTP_USER}>`,
+        to: msg.email,
         subject: `Re: ${msg.subject || 'Contato via Site LMS Tech'}`,
-      }),
-    });
-
-    const responseText = await web3Response.text();
-    let web3Data;
-    try {
-      web3Data = JSON.parse(responseText);
-    } catch {
-      console.error('Web3forms returned non-JSON response:', responseText.substring(0, 200));
-      throw new Error('Erro no serviço de email (web3forms)');
-    }
-    if (!web3Data.success) {
-      throw new Error(web3Data.message || 'Erro ao enviar resposta');
+        html: `<p>Olá ${msg.name},</p><p>${reply}</p><p>--<br>LMS Tech</p>`,
+      });
+    } else {
+      console.warn('SMTP not configured, skipping email send');
     }
 
     await executeRun(
