@@ -483,14 +483,18 @@ app.post('/api/messages/:id/reply', async (req, res) => {
 
     const emailSent = process.env.SMTP_USER && process.env.SMTP_PASS;
     if (emailSent) {
-      console.log('>>> Sending email via SMTP...');
-      await transporter.sendMail({
-        from: `"LMS Tech" <${process.env.SMTP_USER}>`,
-        to: msg.email,
-        subject: `Re: ${msg.subject || 'Contato via Site LMS Tech'}`,
-        html: `<p>Olá ${msg.name},</p><p>${reply}</p><p>--<br>LMS Tech</p>`,
-      });
-      console.log('>>> Email sent successfully');
+      try {
+        console.log('>>> Sending email via SMTP...');
+        await transporter.sendMail({
+          from: `"LMS Tech" <${process.env.SMTP_USER}>`,
+          to: msg.email,
+          subject: `Re: ${msg.subject || 'Contato via Site LMS Tech'}`,
+          html: `<p>Olá ${msg.name},</p><p>${reply}</p><p>--<br>LMS Tech</p>`,
+        });
+        console.log('>>> Email sent successfully');
+      } catch (emailErr) {
+        console.error('>>> Failed to send email (non-fatal):', emailErr.message);
+      }
     } else {
       console.warn('SMTP not configured, skipping email send');
     }
