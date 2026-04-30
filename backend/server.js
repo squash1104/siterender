@@ -111,7 +111,7 @@ async function initializeDatabase() {
       SELECT tablename
       FROM pg_tables
       WHERE schemaname = 'public'
-      AND tablename IN ('products', 'portfolio', 'reviews')
+      AND tablename IN ('products', 'portfolio', 'reviews', 'messages')
     `);
 
     const existingTables = tablesResult.rows.map(row => row.tablename);
