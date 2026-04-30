@@ -1,6 +1,6 @@
 // API configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
-  (window.location.hostname === 'www.lmstech.com.br' || window.location.hostname === 'lmstech.com.br'
+  (window.location.hostname === 'www.lmstech.com.br' || window.location.hostname === 'lmstech.com.br' || window.location.hostname.endsWith('.onrender.com')
     ? 'https://siterenderws.onrender.com/api'
     : 'http://localhost:5000/api');
 
