@@ -9,7 +9,11 @@ const fs = require('fs');
 // Database configuration - PostgreSQL only
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : false,
+  // Configurações adicionais para estabilidade
+  max: 20, // Máximo de conexões
+  idleTimeoutMillis: 30000, // Fechar conexões idle após 30s
+  connectionTimeoutMillis: 2000, // Timeout de conexão 2s
 });
 
 console.log('Usando PostgreSQL...');
@@ -71,6 +75,14 @@ async function initializeDatabaseConnection() {
   pool.on('error', (err) => {
     console.error('Erro inesperado no pool PostgreSQL:', err);
   });
+
+  // Test connection
+  try {
+    await pool.query('SELECT 1');
+    console.log('✅ Conexão com PostgreSQL estabelecida');
+  } catch (err) {
+    console.error('❌ Erro ao conectar com PostgreSQL:', err);
+  }
 }
 
 app.listen(PORT, '0.0.0.0', async () => {
@@ -89,67 +101,102 @@ function executeRun(query, params = []) {
   return pool.query(query, params);
 }
 
-// Criar tabelas
+// Criar tabelas (apenas se não existirem)
 async function initializeDatabase() {
   try {
-    console.log('Inicializando banco de dados PostgreSQL...');
+    console.log('Verificando tabelas do banco de dados...');
 
-    // Dropar tabelas existentes (para recriar do zero)
-    await pool.query('DROP TABLE IF EXISTS reviews CASCADE');
-    await pool.query('DROP TABLE IF EXISTS portfolio CASCADE');
-    await pool.query('DROP TABLE IF EXISTS products CASCADE');
-
-    console.log('Tabelas antigas removidas.');
-
-    // Tabela de produtos
-    await pool.query(`
-      CREATE TABLE products (
-        id SERIAL PRIMARY KEY,
-        nome TEXT NOT NULL,
-        descricao TEXT,
-        categoria TEXT,
-        preco REAL,
-        link_compra TEXT,
-        imagem_url TEXT,
-        loja TEXT,
-        destaque BOOLEAN DEFAULT FALSE,
-        disponivel BOOLEAN DEFAULT TRUE,
-        clicks INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
+    // Verificar se as tabelas já existem
+    const tablesResult = await pool.query(`
+      SELECT tablename
+      FROM pg_tables
+      WHERE schemaname = 'public'
+      AND tablename IN ('products', 'portfolio', 'reviews')
     `);
 
-    // Tabela de portfólio
-    await pool.query(`
-      CREATE TABLE portfolio (
-        id BIGSERIAL PRIMARY KEY,
-        title TEXT NOT NULL,
-        description TEXT,
-        technologies TEXT,
-        image TEXT,
-        images TEXT,
-        link TEXT,
-        version TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    const existingTables = tablesResult.rows.map(row => row.tablename);
+    console.log('Tabelas existentes:', existingTables);
 
-    // Tabela de avaliações
-    await pool.query(`
-      CREATE TABLE reviews (
-        id SERIAL PRIMARY KEY,
-        portfolio_id BIGINT REFERENCES portfolio(id) ON DELETE CASCADE,
-        username TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        comment TEXT NOT NULL,
-        helpful INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    // Criar tabelas apenas se não existirem
+    if (!existingTables.includes('products')) {
+      console.log('Criando tabela products...');
+      await pool.query(`
+        CREATE TABLE products (
+          id SERIAL PRIMARY KEY,
+          nome TEXT NOT NULL,
+          descricao TEXT,
+          categoria TEXT,
+          preco REAL,
+          link_compra TEXT,
+          imagem_url TEXT,
+          loja TEXT,
+          destaque BOOLEAN DEFAULT FALSE,
+          disponivel BOOLEAN DEFAULT TRUE,
+          clicks INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ Tabela products criada');
+    } else {
+      console.log('✅ Tabela products já existe');
+    }
 
-    console.log('Tabelas criadas com sucesso.');
+    if (!existingTables.includes('portfolio')) {
+      console.log('Criando tabela portfolio...');
+      await pool.query(`
+        CREATE TABLE portfolio (
+          id BIGSERIAL PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          technologies TEXT,
+          image TEXT,
+          images TEXT,
+          link TEXT,
+          version TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ Tabela portfolio criada');
+    } else {
+      console.log('✅ Tabela portfolio já existe');
+    }
+
+    if (!existingTables.includes('reviews')) {
+      console.log('Criando tabela reviews...');
+      await pool.query(`
+        CREATE TABLE reviews (
+          id SERIAL PRIMARY KEY,
+          portfolio_id BIGINT REFERENCES portfolio(id) ON DELETE CASCADE,
+          username TEXT NOT NULL,
+          rating INTEGER NOT NULL,
+          comment TEXT NOT NULL,
+          helpful INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ Tabela reviews criada');
+    } else {
+      console.log('✅ Tabela reviews já existe');
+    }
+
+    console.log('✅ Inicialização do banco de dados concluída');
+
+    // Mostrar estatísticas
+    try {
+      const productsCount = await pool.query('SELECT COUNT(*) as count FROM products');
+      const portfolioCount = await pool.query('SELECT COUNT(*) as count FROM portfolio');
+      const reviewsCount = await pool.query('SELECT COUNT(*) as count FROM reviews');
+
+      console.log(`📊 Estatísticas do banco:`);
+      console.log(`   - Produtos: ${productsCount.rows[0].count}`);
+      console.log(`   - Portfólio: ${portfolioCount.rows[0].count}`);
+      console.log(`   - Reviews: ${reviewsCount.rows[0].count}`);
+    } catch (statsError) {
+      console.log('Não foi possível obter estatísticas:', statsError.message);
+    }
+
   } catch (err) {
-    console.error('Erro ao inicializar banco de dados:', err);
+    console.error('❌ Erro ao inicializar banco de dados:', err);
   }
 }
 
@@ -169,14 +216,24 @@ app.get('/api/products', async (req, res) => {
 
 app.post('/api/products', async (req, res) => {
   const { nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks } = req.body;
+  console.log('>>> POST /api/products - Dados recebidos:', { nome, categoria, preco, loja });
+
   try {
     const result = await executeRun(
       'INSERT INTO products (nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque, disponivel, clicks) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
       [nome, descricao, categoria, preco, link_compra, imagem_url, loja, destaque || false, disponivel !== false, clicks || 0]
     );
+
+    console.log('>>> Produto criado com ID:', result.rows[0].id);
+
+    // Verificar se foi realmente salvo
+    const verifyResult = await executeQuery('SELECT COUNT(*) as total FROM products');
+    console.log('>>> Total de produtos no banco:', verifyResult.rows[0].total);
+
     res.json({ id: result.rows[0].id });
   } catch (err) {
-    console.error('Erro em POST /api/products:', err);
+    console.error('>>> ERRO em POST /api/products:', err);
+    console.error('>>> Stack:', err.stack);
     res.status(500).json({ error: err.message });
   }
 });
