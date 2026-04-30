@@ -12,11 +12,15 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    hmr: {
+      overlay: false, // Desabilitar overlay de erros que pode causar problemas
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
+        timeout: 10000,
       },
     },
   },

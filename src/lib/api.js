@@ -4,66 +4,89 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
     ? 'https://siterenderws.onrender.com/api'
     : 'http://localhost:5000/api');
 
+// API helper functions
+const apiRequest = async (endpoint, options = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const config = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  try {
+    const response = await fetch(url, config);
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorData}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`API Error [${options.method || 'GET'} ${endpoint}]:`, error);
+    throw error;
+  }
+};
+
 export const api = {
   // Products
-  getProducts: () => fetch(`${API_BASE_URL}/products`).then(res => res.json()),
-  createProduct: (product) => fetch(`${API_BASE_URL}/products`, {
+  getProducts: () => apiRequest('/products'),
+  createProduct: (product) => apiRequest('/products', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(product)
-  }).then(res => res.json()),
-  updateProduct: (id, product) => fetch(`${API_BASE_URL}/products/${id}`, {
+  }),
+  updateProduct: (id, product) => apiRequest(`/products/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(product)
-  }).then(res => res.json()),
-  deleteProduct: (id) => fetch(`${API_BASE_URL}/products/${id}`, {
+  }),
+  deleteProduct: (id) => apiRequest(`/products/${id}`, {
     method: 'DELETE'
-  }).then(res => res.json()),
+  }),
 
   // Portfolio
-  getPortfolio: () => fetch(`${API_BASE_URL}/portfolio`).then(res => res.json()),
-  createPortfolio: (project) => fetch(`${API_BASE_URL}/portfolio`, {
+  getPortfolio: () => apiRequest('/portfolio'),
+  createPortfolio: (project) => apiRequest('/portfolio', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(project)
-  }).then(res => res.json()),
-  updatePortfolio: (id, project) => fetch(`${API_BASE_URL}/portfolio/${id}`, {
+  }),
+  updatePortfolio: (id, project) => apiRequest(`/portfolio/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(project)
-  }).then(res => res.json()),
-  deletePortfolio: (id) => fetch(`${API_BASE_URL}/portfolio/${id}`, {
+  }),
+  deletePortfolio: (id) => apiRequest(`/portfolio/${id}`, {
     method: 'DELETE'
-  }).then(res => res.json()),
+  }),
 
   // Reviews
-  getReviews: (portfolioId) => fetch(`${API_BASE_URL}/reviews/${portfolioId}`).then(res => res.json()),
-  createReview: (review) => fetch(`${API_BASE_URL}/reviews`, {
+  getReviews: (portfolioId) => apiRequest(`/reviews/${portfolioId}`),
+  createReview: (review) => apiRequest('/reviews', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(review)
-  }).then(res => res.json()),
-  markHelpful: (reviewId) => fetch(`${API_BASE_URL}/reviews/${reviewId}/helpful`, {
+  }),
+  markHelpful: (reviewId) => apiRequest(`/reviews/${reviewId}/helpful`, {
     method: 'PUT'
-  }).then(res => res.json()),
+  }),
 
   // Upload
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    return fetch(`${API_BASE_URL}/upload`, {
+    return apiRequest('/upload', {
       method: 'POST',
+      headers: {}, // Remove Content-Type para multipart/form-data
       body: formData
-    }).then(res => res.json());
+    });
   },
 
   uploadMultipleImages: (files) => {
     const formData = new FormData();
     files.forEach(file => formData.append('images', file));
-    return fetch(`${API_BASE_URL}/upload-multiple`, {
+    return apiRequest('/upload-multiple', {
       method: 'POST',
+      headers: {}, // Remove Content-Type para multipart/form-data
       body: formData
-    }).then(res => res.json());
+    });
   }
 };
